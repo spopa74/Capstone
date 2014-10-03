@@ -1,33 +1,56 @@
-Predictive Keyboard. Building the model
-=======================================
+---
+title: "Predictive keyboard, modeling"
+author: "Sebastian Popa"
+date: "10/2/2014"
+output: html_document
+---
 
 This markdown file will describe the steps for building the model for the project, written as I go through the tasks. The **main requirement** of this project is **"PREDICTIVE KEYBOARD: ...use the knowledge you gained in data products to build a predictive text product..."**. Basically, based on a pre-constructed predictive model and the current text written, the *predictive keyboard* should propose believable *following* words. 
 
-Deliverables: 
-- A predictive text model to test on a real data set
-- A reproducible R markdown document describing your model building process (this document)
-- A data product built with Shiny or Yhat to demonstrate the use of your product  
+Deliverables:  
+* A predictive text model to test on a real data set  
+* A reproducible R markdown document describing your model building process (this document)  
+* A data product built with Shiny or Yhat to demonstrate the use of your product    
  
 
-Introduction to modeling 
-------------------------
+Introduction 
+------------
 The project is an exercise in building a predictive model for text input using a keyboard. The predictive model could be a combination of probabilistic models (N-grams, others), and rule-based models (which, in general, could also be modeled using probabilities). For various tasks of the keyboard, different models will be used. 
 
 In general, there are several sources of variability in regards to the possible *following* words. The sources, in short, could be imagined as being the **context** of the respective text (the text currently written, using the keyboard). From the factors defining the context, one could enumerate:  
-- **the language** the text is written in. English vs. Russian, etc. The models should be sensitive to the respective language. For this, I will employ a simple rule based model, using the stopwords from the text written, to guess the language. Quick reminder, stopwords are *function words and connectives such as articles and prepositions that appear in a large number of documents... e.g. a, an, the, on for English...*. [2]
-- **the application** in which the text will appear. In this case, the 3 possibilities are Twitter, Blogs, News. Certain rules could be used to guess the application (#s combined with short messages for Twitter, unclear about the Blogs and News). But, considering that the text input, in which the keyboard will write, is tightly connected to a specific application (client app for Twitter, Blogs, News), the application could be actually *predefined*. For this project, a button in the UI, which selects between the 3 possibilities, could be employed. 
-- **the subject** of the text. Ideally, the keyboard would be able to detect, in general terms, what the text is about (some high frequency words), and based on this information, to *push* some other possible *following words* in front (meaning giving them a higher probability). A probabilistic model involving groups of words, usually used together in texts, could be employed. 
-- **the grammar** of the language or of the person. This would be more difficult to model in general (and also would probably fail in case of Twitter or News, which involve some loose grammar or jurnalistic style), but hopefully N-grams will be helpful enough (where N is 4 or 5, but comparisons with shorter N-grams could be also done, and see if they're just as "good"). 
-- **the vocabulary** of the user. In this case, we don't really have users (the data given is not associated with users), but the problem is similar to the *subject*, meaning that users tend to use the same words in regards to same subjects. The keyboard, after a while, could, in theory, use the text input to *learn* the user's specifics. 
+* **the language** the text is written in. English vs. Russian, etc. The models should be sensitive to the respective language. For this project, I'll focus on the English corpus. A similar analysis and product could be re-created for the other languages, with the extra attention given to Unicode treatment.  
+* **the application** in which the text will appear. In this case, the 3 possibilities are Twitter, Blogs, News. Consider the amount of data, I'll treat them the same way (analyze the whole corpus and extract the needed information for all applications).    
+* **the subject** of the text. Ideally, the keyboard would be able to detect, in general terms, what the text is about (some high frequency words after removing the stopwords), and based on this information, to *push* some other possible *following words* in front (meaning giving them a higher probability). A probabilistic model involving groups of words, usually used together in texts, could be employed.    
+* **the grammar** of the language or of the person. This would be more difficult to model in general (and also would probably fail in case of Twitter or News, which involve some loose grammar or jurnalistic style), but hopefully N-grams will be helpful enough (where N is 4 or 5, but comparisons with shorter N-grams could be also done, and see if they're just as "good").  
+* **the vocabulary** of the user. In this case, we don't really have users (the data given is not associated with users), but the problem is similar to the *subject*, meaning that users tend to use the same words in regards to same subjects. The keyboard, after a while, could, in theory, use the text input to *learn* the user's specifics.  
 
-As a general approach, I'll start by creating a simple N-gram probabilistic model, by putting the texts together, creating the N-grams, and getting a measure of its accuracy. I'll use this model as a baseline. I'll continue by trying some improvements like the ones described above (language selection, subject clustering, user vocabulary learning). A measurement of accuracy will be done here also, and a statistical significance comparison will be attempted (comparison of proportions of accurate selections vs. the length of the text written). 
+
+The workflow
+------------
+
+**As a general approach**, I'll start by creating a simple N-gram probabilistic model, by putting the texts together, creating the N-grams, and getting a measure of its accuracy (start with a 2-gram model). I'll use this model as a baseline. I'll continue by trying some improvements, including smoothing, back-off strategy or linear combination of N-grams. A measurement of accuracy will be done here also, and a statistical significance comparison will be attempted (comparison of proportions of accurate selections vs. the length of the text written - frankly, with such a huge corpus, hard to believe will NOT be statistically significant, so maybe a question of practical significance should be attempted). 
+
+Steps:   
+1. Remove profanities from files  
+  * A new set of files in a folder called **1_clean**, called "clean_en_US.blogs.txt", etc  
+  * At same time, remove most punctuation and lower case everything (prepare for N-grams analysis)   
+2. Break the files, get a training corpus, a test corpus, and a smaller corpus for a possible cross-validation step.  
+  * A new set of files, in folders **2_train**, **2_test**, **2_cross**. The sizes will follow the percentages 70% for training, 20% for testing, 10% for cross validation.  
+  * The process of splitting will be a simple one, break the files in somewhat equal 10 sizes. Pick randomly from these pieces, 2 for testing and 1 for cross-validation, the rest will be the training set. While in general a more precise method should be used, in this case I think this method will be enough, meaning that the collection of blogs/news/tweets is already pretty mixed, more like a "cluster" than a "stratum". Picking "clusters" (chunks) from files will keep the variability of the possible features constant (and high).  
+3. Get a language model based on the training corpus. Create 1-, 2-, 3-, 4-grams. Depending on the time, try a 5-grams. Check what's the distribution of frequencies (at some point the difference between frequencies will probably plateau, meaning that the N-grams will be unique, so no decision power at that point).  
+4. measure the accuracy of the model on the test corpus.  
+5. Get a model based on back-off. Get a measure of accuracy on the test corpus.  
+6. Get a model based on smoothing techniques. Get a measure of accuracy on the test corpus.  
+7. Compare all models, draw conclusion  
+
+
 
 
 Task 0 - Understanding the problem
 ----------------------------------
 
 a). What data do we have?  
-- 4 sets of files, containing samples of tweets, blogs and news, in English, German, Finnish and Russian. 
+* 4 sets of files, containing samples of tweets, blogs and news, in English, German, Finnish and Russian. 
 Some basic data, word counts, etc (used *wc* command, recursively). 
 
 ```html
@@ -47,40 +70,40 @@ Some basic data, word counts, etc (used *wc* command, recursively).
 ```
 
 b). What are the standard tools and models?  
-- documentation
-    - *Text mining infrastucture in R*: http://www.jstatsoft.org/v25/i05/
-    - *CRAN Task View: Natural Language Processing*: http://cran.r-project.org/web/views/NaturalLanguageProcessing.html
-    - Coursera course on NLP (not in R): https://class.coursera.org/nlp
-    - stemmers, stopwords, various helping info at http://snowball.tartarus.org
+* documentation
+    * *Text mining infrastucture in R*: http://www.jstatsoft.org/v25/i05/
+    * *CRAN Task View: Natural Language Processing*: http://cran.r-project.org/web/views/NaturalLanguageProcessing.html
+    * Coursera course on NLP (not in R): https://class.coursera.org/nlp
+    * stemmers, stopwords, various helping info at http://snowball.tartarus.org
     
-- libraries
-    - *Text Mining* R library, mentioned above
-    - *OpenNLP*, Java library for Natural Language Processing
-    - *Weka*, open source Java product for various Data Mining and Artificial Intelligence algorithms. The R library mentioned above does integrate with the other two. 
+* libraries
+    * *Text Mining* R library, mentioned above
+    * *OpenNLP*, Java library for Natural Language Processing
+    * *Weka*, open source Java product for various Data Mining and Artificial Intelligence algorithms. The R library mentioned above does integrate with the other two. 
 
-- models
-    - the immediate model for predicting following words one could think of is the N-grams: Markov probabilistic model for associating a certain probability to words, depending on the previous (N-1) words. 
-    - for selecting the language and/or switching languages, a simple rule based model could be imagined: based on the stopwords typed with the keyboard, decide the language. Allow for changing on the fly, depending on changing the overall count of stopwords in a certain language. Another idea on this line, the model could flip between languages based on the N-grams ("a 4-gram with a different language word at the end maybe should take into consideration 3-, 2-grams instead of an unexisting 4-gram"). 
-    - a model based on more and more input from a user should be designed - the users have different "styles" (vocabularies, N-grams, subjects of conversation), so the keyboard should, in general, allow for a user-specific model. This should evolve based on accumulating more input, and the keyboard should behave based on the simple rule "is the N-gram in the user model? If not, use the general model..." (to be determined). 
+* models
+    * the immediate model for predicting following words one could think of is the N-grams: Markov probabilistic model for associating a certain probability to words, depending on the previous (N-1) words. 
+    * for selecting the language and/or switching languages, a simple rule based model could be imagined: based on the stopwords typed with the keyboard, decide the language. Allow for changing on the fly, depending on changing the overall count of stopwords in a certain language. Another idea on this line, the model could flip between languages based on the N-grams ("a 4-gram with a different language word at the end maybe should take into consideration 3-, 2-grams instead of an unexisting 4-gram"). 
+    * a model based on more and more input from a user should be designed - the users have different "styles" (vocabularies, N-grams, subjects of conversation), so the keyboard should, in general, allow for a user-specific model. This should evolve based on accumulating more input, and the keyboard should behave based on the simple rule "is the N-gram in the user model? If not, use the general model..." (to be determined). 
   
 **Questions**  
 
-- *What do the data look like?* The data seems to be text pieces extracted from Tweets, blogs, news.
-- *Where do the data come from?* HC Corpora (www.corpora.heliohost.org).
-- *Can you think of any other data sources that might help you in this project?*
-    - Vocabularies. This would make the parsing of the samples more robust, in the sense that the misspellings would be corrected while parsing the text, and we would get more correct counts for various statistics. 
-    - Stemmers, Part of Speech analyzer, Grammars. Working with the stemmer, would be able to extract grammar related rules, and make a more educated guess in regards to the next possible word. 
-    - N-grams database from Google. Would work together with the N-grams derived from the data given here. 
-    - It would be nice to have the data split "per user". Different users will have different "styles", and also would have a certain set of subjects they discuss about (guess-able from the most frequent words used - after removing the stopwords). The predictive keyboard *could* implement a learner which takes into consideration the previous user's texts, which would work in conjunction with the more general one. 
-- *What are the common steps in natural language processing?* 
-    - Tokenization: stemming, punctuation, analysis of linked and contracted words ("it's", "-"). 
-    - Sentence and structure detection: deal with punctuation. 
-    - Part of speech tagging, normalization: resolve ambiguities related to polysemantic words. 
-    - Named entity resolution: associate the word to a concept, use ontologies and synonims. 
-    - Parsing: find the structure of a sentence. 
-    - Building a language model: use N-grams, rules, synonims. Find a representation of the language model.
-- *What are some common issues in the analysis of text data?* One could think of: language (each language has its own specifics), problems with stemming (conjugations, declensions), punctuation (ambiguities), grammar (improper), semantic ambiguities, negations.
-- *What is the relationship between NLP and the concepts you have learned in the Specialization?* I would say that the most important connection is the statistic/probabilistic treatment of the language models (Markov chains, N-grams).
+* *What do the data look like?* The data seems to be text pieces extracted from Tweets, blogs, news.
+* *Where do the data come from?* HC Corpora (www.corpora.heliohost.org).
+* *Can you think of any other data sources that might help you in this project?*
+    * Vocabularies. This would make the parsing of the samples more robust, in the sense that the misspellings would be corrected while parsing the text, and we would get more correct counts for various statistics. 
+    * Stemmers, Part of Speech analyzer, Grammars. Working with the stemmer, would be able to extract grammar related rules, and make a more educated guess in regards to the next possible word. 
+    * N-grams database from Google. Would work together with the N-grams derived from the data given here. 
+    * It would be nice to have the data split "per user". Different users will have different "styles", and also would have a certain set of subjects they discuss about (guess-able from the most frequent words used - after removing the stopwords). The predictive keyboard *could* implement a learner which takes into consideration the previous user's texts, which would work in conjunction with the more general one. 
+* *What are the common steps in natural language processing?* 
+    * Tokenization: stemming, punctuation, analysis of linked and contracted words ("it's", "-"). 
+    * Sentence and structure detection: deal with punctuation. 
+    * Part of speech tagging, normalization: resolve ambiguities related to polysemantic words. 
+    * Named entity resolution: associate the word to a concept, use ontologies and synonims. 
+    * Parsing: find the structure of a sentence. 
+    * Building a language model: use N-grams, rules, synonims. Find a representation of the language model.
+* *What are some common issues in the analysis of text data?* One could think of: language (each language has its own specifics), problems with stemming (conjugations, declensions), punctuation (ambiguities), grammar (improper), semantic ambiguities, negations.
+* *What is the relationship between NLP and the concepts you have learned in the Specialization?* I would say that the most important connection is the statistic/probabilistic treatment of the language models (Markov chains, N-grams).
 
   
 Task 1 - Data acquisition and cleaning
@@ -88,52 +111,92 @@ Task 1 - Data acquisition and cleaning
 
 **Tasks**
 
-- Tokenization - identifying appropriate tokens such as words, punctuation, and numbers. Writing a function that takes a file as input and returns a tokenized version of it.
+* Tokenization - identifying appropriate tokens such as words, punctuation, and numbers. Writing a function that takes a file as input and returns a tokenized version of it.
 
 ```{r}
-## While a function for iterating through the lines of text from a file, paying attention to the 
-## punctuation, could be imagined, for this one I'll use directly the Weka tokenizer: 
-library(RWeka)
-tokenize <- function(file) {
-    tokens <- c()
-    # open file
-    lines <- readLines(file)
-    # parse lines
-    for (i in 1:length(lines)) {
-        line <- lines[i]
-        tokens <- c(tokens, WordTokenizer(line))
+## function will parse a file and will write clean lines of that file in other file. 
+## e.g. A call like cleanFile("meh.txt", "clean") will create the folder "clean" and inside
+## a files - clean_meh.txt etc. This should not contain profanities (as defined above). 
+
+## NOTE - please careful with the param, the function doesn't check them at all. 
+cleanFile <- function(fileInput, folderOutput) {
+  if (!file.exists(folderOutput)){
+    ## create the folder if it doesn't exist
+    dir.create(folderOutput)
+  }
+    
+  ## get the lines from the file. 
+  input <- file(fileInput, "rb", encoding = "UTF-8")
+  lines <- readLines(input, skipNul = TRUE, encoding = "UTF-8")
+  close(input)
+  
+  ## open a file for writing
+  output <- file(paste(folderOutput, "/clean_", fileInput, sep=""), "w", encoding = "UTF-8")
+  
+  for (line in lines){
+    line <- iconv(line, to = "UTF-8")
+    ## readlines, clean them, write them in the new file. 
+    cleanLine <- removeProfanities(line)
+    writeLines(text = cleanLine, con = output)
+  }
+  
+  close(output)
+    
+}
+```
+
+* Profanity filtering - removing profanity and other words you do not want to predict. 
+The main idea here is to replace what is being perceived as profanity, with some predefined keyword. A personal choice here, using "(...)" instead of a profanity. Trivial replacement in the vector of tokens. Use the list at https://github.com/shutterstock/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/blob/master/en (a simplified subset of it). I used simple replacement instead of regular expression matching, for two reasons: 
+    * the regular expressions matching will be also prone to errors (" *uck" or similar will also filter "duck")  
+    * speed  
+
+```{r}
+library(stringi)
+
+## list of profanities, reduced here for readability. The actual list used is much longer. 
+profanities <- c("acrotomophilia", "anal", "anilingus", "arsehole")  
+                 
+## function, will remove profanities from a line and will return the line with no punctuation, 
+removeProfanities <- function(line) {
+  ## leave the # and ' alone
+  tokens <- strsplit(line, "[~`!@$%^&*\\(\\)\\-_=+,<.>/?\\|\\{} \"]")
+  newline <- ""
+  for (token in unlist(tokens)){
+    if (token %in% profanities){
+      newline <- paste(newline, "(...)")
     }
-    return(tokens)
+    else 
+      newline <- paste(newline, stri_trans_tolower(token), sep=" ")
+  }
+    
+  return(newline)
 }
 
 ```
 
-- Profanity filtering - removing profanity and other words you do not want to predict. 
-The main idea here is to replace what is being perceived as profanity, with some predefined keyword. A personal choice here, using "..." instead of a profanity. Trivial replacement in the vector of tokens. 
+* there is some other stuff which could be probably cleaned
+  * HTML tags
+  * Unicode characters. These impose a treatment of ` or ', non-alphabetic characters, which should be probably removed (punctuation). 
 
-```{r}
-filter_profanities <- function(tokens, profanities){
-    for (i in 1:length(tokens)){
-        if(tokens[i] %in% profanities)
-            tokens[i] <- "..."
-    }
-    return(tokens)
-}
-
-```
 
 
 **Questions**
 
-- *How should you handle punctuation?* Start with a punctuation symbols set, some probabilistic rules to decide "when is really defining structure vs. other usage". The punctuation could help with the parsing (but not necessarily with the N-grams construction. 
-- *The data contains lots of times, dates, numbers and currency values. How to handle these? Are they useful for prediction?* Probably not that useful for the exact prediction the following word, but maybe useful for guessing the subject of the text. 
-- *How do you find typos in the data?* By comparing with the vocabulary and some rules for stemming. 
-- *How do you identify garbage, or the wrong language?* By an *admittedly long* series of unrecognized words. Not sure if one can make a clear distinction between "garbage" and "wrong language", unless we can be confident that we do have a complete set of languages defined in the system - if the text doesn't *belong* in any of the languages, then is *garbage*.
-- *How do you define profanity? How do you ensure you don't remove words you want to include?* One could include a list of profanities with variations (some simplistic regular expressions might also work). Not sure a *minimal edit distance* approach would work, since would be very difficult, based on a minimal edit distance approach, to allow words like *duck* or so. 
-- *How do you handle capital and lower cases?* Probably the simplest way is to lowercase everything in the model. They could play a role in part of speech analyis (names, etc, which should not be confused with some misspelled word). 
-- *What is the best set of features you might use to predict the next word?*
-    - N-grams (4- or 5-grams), learned from these files or from the user's input
-    - Part of speech analysis (grammar rules for the respective language)
+* *How should you handle punctuation?* Start with a punctuation symbols set, a simple regular expression. As noted above, using Unicode in text will complicate somewhat the treatment. The punctuation, in general, could help with the parsing (but not necessarily with the N-grams construction. In this case I used a regex like [~`!@$%^&*\\(\\)\\-_=+,<.>/?\\|\\{} \"]
+* *The data contains lots of times, dates, numbers and currency values. How to handle these? Are they useful for prediction?* Probably not that useful for the exact prediction the following word, but maybe useful for guessing the subject of the text. I choose to remove numbers from analysis. 
+* *How do you find typos in the data?* By comparing with the vocabulary and some rules for stemming. 
+* *How do you identify garbage, or the wrong language?* By an *admittedly long* series of unrecognized words. Not sure if one can make a clear distinction between "garbage" and "wrong language", unless we can be confident that we do have a complete set of languages defined in the system - if the text doesn't *belong* in any of the languages, then is *garbage*.
+* *How do you define profanity? How do you ensure you don't remove words you want to include?* One could include a list of profanities with variations (some simplistic regular expressions might also work). Not sure a *minimal edit distance* approach would work, since would be very difficult, based on a minimal edit distance approach, to allow words like *duck* or so. 
+* *How do you handle capital and lower cases?* Probably the simplest way is to lowercase everything in the model. They could play a role in part of speech analyis (names, etc, which should not be confused with some misspelled word). 
+* *What is the best set of features you might use to predict the next word?*
+    * N-grams (4- or 5-grams), learned from these files or from the user's input
+    * Part of speech analysis (grammar rules for the respective language)
+    * NOTE. the 4 and 5-grams will actually help a lot with the grammar as well, since most gramatical constructions will be well defined by 4 or 5 words expressions ("I .." is very often followed by a verb, etc). 
+
+
+At the end of the profanity removal task, I'll have clean files, no punctuation, all in lower case. These files will be ready to be analyzed for N-gram extraction. 
+
+
 
 
 Task 2 - Exploratory analysis
@@ -141,46 +204,86 @@ Task 2 - Exploratory analysis
 
 **Tasks**
 
-- Exploratory analysis  - perform a thorough exploratory analysis of the data, understanding the distribution of words and relationship between the words in the corpora. 
+* *Exploratory analysis  - perform a thorough exploratory analysis of the data, understanding the distribution of words and relationship between the words in the corpora.*   
 At this point we need a lib to start getting the N-grams out of the corpus. Using tm and RWeka, the code will look like: 
+
 ```{r cache=TRUE, eval=FALSE}
+## Java stuff
+Sys.setenv(JAVA_HOME="")
+options(java.parameters="-Xmx14g")
+
 ## create a tokenizer in RWeka
 tokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 1, max = 5))
 ## load a corpus from a folder
-en_texts <- VCorpus(DirSource(directory="data/en_US/small", encoding="UTF-8"), 
+en_texts <- VCorpus(DirSource(directory="data/en_US/clean", encoding="UTF-8"), 
                     readerControl=list(language="en"))
 ## clean up text
 en_texts <- tm_map(x=en_texts, FUN=removeNumbers)
-en_texts <- tm_map(x=en_texts, FUN=removePunctuation)
-en_texts <- tm_map(x=en_texts, FUN=tolower)
+## No need, punctuation already removed - en_texts <- tm_map(x=en_texts, FUN=removePunctuation)
+## No need, all text is lower case - en_texts <- tm_map(x=en_texts, FUN=tolower)
 ## options(mc.cores=1)
 ## create a term document matrix, with the frequencies
 tdm <- TermDocumentMatrix(en_texts, control=list(tokenizer=tokenizer))
 ```
 
-**Note**: loading in parallel on RWeka/MacOS TermDocumentMatrix crashes with some obscure errors. Suggestion to use option mc.cores=1. 
-**Note**: working on a "bigger" TermDocumentMatrix crashes the JVM behind RWeka, OutOfMemory. Suggestion to use option java.parameters="-Xmx4g" (heap size up to 4G)
+**Note**: loading in parallel on RWeka/MacOS TermDocumentMatrix crashes with some obscure errors. Suggestion to use option mc.cores=1.  
+**Note**: working on a "bigger" TermDocumentMatrix crashes the JVM behind RWeka, OutOfMemory. Suggestion to use option java.parameters="-Xmx4g" (heap size up to 4G)  
+**Note**: rJava library has problems if the environment variable JAVA_HOME is set. So unset it before loading rJava or RWeka (Sys.setenv(JAVA_HOME=""))  
 
-Some stats: 
+
+Some stats with regards to time required to analyze the whole corpus (english): 
 ```html
-
-size of corpus(lines)        user     system      elapsed
-        10,000               32.2        0.3         26.1
-       100,000              464.9        6.6        424.5
-       
+N-grams |    User   System    Elapsed  
+------- | ---------------------------  
+1-Gram  |  219.54     1.44     210.80   
+2-Gram  |  840.21     3.73     823.12  
+3-Gram  | 2179.20     8.42    2153.49   
+4-Gram  | 2999.19     8.60    2969.92  
+5-Gram  | 3285.18     8.86    3258.52  
 ```
 
 
- 
-- Understand frequencies of words and word pairs - build figures and tables to understand variation in the frequencies of words and word pairs in the data. 
- 
+*...Understand frequencies of words and word pairs - build figures and tables to understand variation in the frequencies of words and word pairs in the data.*
+
+  * 1-Grams:  
+    * Total different: ~700,000
+    * Highest frequency: ~3 millions
+    * Number of 1's (frequency == 1): ~420,000
+    * 6 Most used: "the", "and", "that", "for", "you", "with"  
+  * 2-Grams:  
+    * Total different: ~11 millions  
+    * Highest frequency: ~300,000  
+    * Number of 1's (frequency == 1): ~7.5 millions 
+    * 6 Most used: "of the", "in the", "to the", "for the", "on the", "I'm"  
+  * 3-Grams:  
+    * Total different: ~32 millions  
+    * Highest frequency: 30,000  
+    * Number of 1's (frequency == 1): ~27 millions   
+    * 6 Most used:  "I don't", "one of the", "a lot of", "thanks for the", "I can't", "it's a"
+  * 4-Grams:  
+    * Total different: ~48 millions  
+    * Highest frequency: 5884  
+    * Number of 1's (frequency == 1): ~45 millions    
+    * 6 Most used: "can't wait to", "i don't know", "i'm going to", "the end of the", "the rest of the", "at the end of"
+  * 5-Grams:  
+    * Total different: ~53 millions  
+    * Highest frequency: 2374
+    * Number of 1's (frequency == 1): 51.7 millions (most of them are encountered only once)   
+    * 6 Most used: "at the end of the", "can't wait to see", "i don't want to", "i can't wait to", "it's going to be", "in the middle of the"
+
+As for a plot, I'll put just the 1-Grams plot (logarithm so we can see the "elbow"). The plots for the rest of the N-Grams will look VERY SIMILAR (except they have lower and lower frequencies, and longer and longer tails to the right - meaning more and more Grams with the count of 1). 
+
+![alt text](PlotFrq1Grams.png)
+
+
+
 **Questions**
 
-- *Some words are more frequent than others - what are the distributions of word frequencies?*
-- *What are the frequencies of 2-grams and 3-grams in the dataset?*
-- *How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?*
-- *How do you evaluate how many of the words come from foreign languages?*
-- *Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?*
+* *Some words are more frequent than others - what are the distributions of word frequencies?*
+* *What are the frequencies of 2-grams and 3-grams in the dataset?*
+* *How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?*
+* *How do you evaluate how many of the words come from foreign languages?*
+* *Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?*
 
 
 References
