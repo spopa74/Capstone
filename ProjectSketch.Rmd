@@ -322,7 +322,10 @@ Task 3 - Modeling
   
 **Questions**  
   
-  * *How can you efficiently store an n-gram model (think Markov Chains)?*  As suggested, a Markov Chain could be employed. Starting with the list of 1-Grams (probabilities of one-word together with the list of one-words), I could start parsing the 2-Grams. F
+  * *How can you efficiently store an n-gram model (think Markov Chains)?*  As suggested, a Markov Chain could be employed. Starting with the list of 1-Grams (probabilities of one-word together with the list of one-words), I could start parsing the 2-Grams. For each of the 2-Grams, add a "link" between the words, so the link represents the probability of the respective 2-Gram (and so on for the 3-, 4-, 5-Grams). The "paths" will have to be memorized, so the model works "forward", meaning that given a group of words, the model is quick to calculate the "next probable word". In regards to efficiency, and looking at the size of the problem, several things will have to be taken into consideration:  
+    * Don't create other vectors with the actual words or Grams. These take a lot of space. Use "links", meaning indexes in the 1-Gram vector, to describe "next" word.  
+    * The 1-Gram vector is ~700,000 words. So find the smallest integer type that will store these indexes.  
+    * The model will contains Grams and several pieces of information for each Gram (probability of being on 1'st, 2'nd, 3'd positions, etc). I think something like this should work. TO BE TESTED. 
   * *How can you use the knowledge about word frequencies to make your model smaller and more efficient?* One idea is to completely drop a bunch of the "rarely seen" Grams (meaning for example the ones with frequency 1). This would mean dropping about 75% of the 2-Grams (I leave the 1-Grams as they are), more than 80% of the 3-Grams, almost 95% from the 4- and 5Grams.   
   * *How many parameters do you need (i.e. how big is n in your n-gram model)?* This model I'm building will go up to 5-Grams. Frankly, looking at the texts, it seems that there is little predictive power in the groups of 5 (usually the 5
 'th word is already another stopword, so something that would come up higher anyway, with any of the 2/3/4-Gram models).     
@@ -332,6 +335,26 @@ Task 3 - Modeling
     * Second, "estimate next possible 3 words". This is different, in the way that a software keyboard could give the user several options in regards to the next possible word. In my case, I'll use 3 options. With this in mind, the process will be: parse the testing corpus, and for each word use the model to return 3 possibilities. If the actual next word is in those 3, consider it a "hit". Count hits and misses, calculate accuracy.  
   * *How can you use backoff models (http://en.wikipedia.org/wiki/Katz's_back-off_model) to estimate the probability of unobserved n-grams?* As mentioned above, if there is no suggestion for the last 4 words (using 5-Grams and associated probabilities), then use last 3, if not, last 2, if not, last 1, and, if still not, use the highest 1-Gram probabilities ("the", "end", etc).  
 
+
+
+Task 4 - Prediction
+-------------------
+
+*The goal of this exercise is to build and evaluate your first predictive model. You will use the n-gram and backoff models you built in previous tasks to build and evaluate your predictive model. The goal is to make the model efficient and accurate.*   
+
+
+**Tasks**  
+
+* *Build a predictive model based on the previous data modeling steps - you may combine the models in any way you think is appropriate.*  
+* Evaluate the model for efficiency and accuracy - use timing software to evaluate the computational complexity of your model. Evaluate the model accuracy using different metrics like perplexity, accuracy at the first word, second word, and third word.  
+
+
+**Questions**  
+
+* How does the model perform for different choices of the parameters and size of the model?   
+* How much does the model slow down for the performance you gain?  
+* Does perplexity correlate with the other measures of accuracy?  
+* Can you reduce the size of the model (number of parameters) without reducing performance?   
 
 
 
