@@ -58,17 +58,20 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 </div>
 
 
+<div id="modeling-the-predictive-keyboard" class="section level2">
+<h2>Modeling the Predictive Keyboard</h2>
 <p>This markdown file will describe the steps for building the model for the project, written as I go through the tasks. The <strong>main requirement</strong> of this project is <strong>“PREDICTIVE KEYBOARD: …use the knowledge you gained in data products to build a predictive text product…”</strong>. Basically, based on a pre-constructed predictive model and the current text written, the <em>predictive keyboard</em> should propose believable <em>following</em> words.</p>
 <p>Deliverables:<br />* A predictive text model to test on a real data set<br />* A reproducible R markdown document describing your model building process (this document)<br />* A data product built with Shiny or Yhat to demonstrate the use of your product</p>
+</div>
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
 <p>The project is an exercise in building a predictive model for text input using a keyboard. The predictive model could be a combination of probabilistic models (N-grams, others), and rule-based models (which, in general, could also be modeled using probabilities). For various tasks of the keyboard, different models will be used.</p>
-<p>In general, there are several sources of variability in regards to the possible <em>following</em> words. The sources, in short, could be imagined as being the <strong>context</strong> of the respective text (the text currently written, using the keyboard). From the factors defining the context, one could enumerate:<br />* <strong>the language</strong> the text is written in. English vs. Russian, etc. The models should be sensitive to the respective language. For this project, I’ll focus on the English corpus. A similar analysis and product could be re-created for the other languages, with the extra attention given to Unicode treatment.<br />* <strong>the application</strong> in which the text will appear. In this case, the 3 possibilities are Twitter, Blogs, News. Consider the amount of data, I’ll treat them the same way (analyze the whole corpus and extract the needed information for all applications).<br />* <strong>the subject</strong> of the text. Ideally, the keyboard would be able to detect, in general terms, what the text is about (some high frequency words after removing the stopwords), and based on this information, to <em>push</em> some other possible <em>following words</em> in front (meaning giving them a higher probability). A probabilistic model involving groups of words, usually used together in texts, could be employed.<br />* <strong>the grammar</strong> of the language or of the person. This would be more difficult to model in general (and also would probably fail in case of Twitter or News, which involve some loose grammar or jurnalistic style), but hopefully N-grams will be helpful enough (where N is 4 or 5, but comparisons with shorter N-grams could be also done, and see if they’re just as “good”).<br />* <strong>the vocabulary</strong> of the user. In this case, we don’t really have users (the data given is not associated with users), but the problem is similar to the <em>subject</em>, meaning that users tend to use the same words in regards to same subjects. The keyboard, after a while, could, in theory, use the text input to <em>learn</em> the user’s specifics.</p>
+<p>In general, there are several sources of variability in regards to the possible <em>following</em> words. The sources, in short, could be imagined as being the <strong>context</strong> of the respective text (the text currently written, using the keyboard). From the factors defining the context, one could enumerate:<br />* <strong>the language</strong> the text is written in. English vs. Russian, etc. The models should be sensitive to the respective language. For this project, I’ll focus on the English corpus. A similar analysis and product could be re-created for the other languages, with the extra attention given to Unicode treatment.<br />* <strong>the application</strong> in which the text will appear. In this case, the 3 possibilities are Twitter, Blogs, News. Consider the amount of data, I’ll treat them the same way (analyze the whole corpus and extract the needed information for all applications).<br />* <strong>the subject</strong> of the text. Ideally, the keyboard would be able to detect, in general terms, what the text is about (some high frequency words after removing the stopwords), and based on this information, to <em>push</em> some other possible <em>following words</em> in front (meaning giving them a higher probability). A probabilistic model involving groups of words, usually used together in texts, could be employed.<br />* <strong>the grammar</strong> of the language or of the person. This would be more difficult to model in general (and also would probably fail in case of Twitter or News, which involve some loose grammar or journalistic style), but hopefully N-grams will be helpful enough (where N is 4 or 5, but comparisons with shorter N-grams could be also done, and see if they’re just as “good”).<br />* <strong>the vocabulary</strong> of the user. In this case, we don’t really have users (the data given is not associated with users), but the problem is similar to the <em>subject</em>, meaning that users tend to use the same words in regards to same subjects. The keyboard, after a while, could, in theory, use the text input to <em>learn</em> the user’s specifics.</p>
 </div>
 <div id="the-workflow" class="section level2">
 <h2>The workflow</h2>
 <p><strong>As a general approach</strong>, I’ll start by creating a simple N-gram probabilistic model, by putting the texts together, creating the N-grams, and getting a measure of its accuracy (start with a 2-gram model). I’ll use this model as a baseline. I’ll continue by trying some improvements, including smoothing, back-off strategy or linear combination of N-grams. A measurement of accuracy will be done here also, and a statistical significance comparison will be attempted (comparison of proportions of accurate selections vs. the length of the text written - frankly, with such a huge corpus, hard to believe will NOT be statistically significant, so maybe a question of practical significance should be attempted).</p>
-<p>Steps:<br />1. Remove profanities from files<br /> * A new set of files in a folder called <strong>1_clean</strong>, called “clean_en_US.blogs.txt”, etc<br /> * At same time, remove most punctuation and lower case everything (prepare for N-grams analysis)<br />2. Break the files, get a training corpus, a test corpus, and a smaller corpus for a possible cross-validation step.<br /> * A new set of files, in folders <strong>2_train</strong>, <strong>2_test</strong>, <strong>2_cross</strong>. The sizes will follow the percentages 70% for training, 20% for testing, 10% for cross validation.<br /> * The process of splitting will be a simple one, break the files in somewhat equal 10 sizes. Pick randomly from these pieces, 2 for testing and 1 for cross-validation, the rest will be the training set. While in general a more precise method should be used, in this case I think this method will be enough, meaning that the collection of blogs/news/tweets is already pretty mixed, more like a “cluster” than a “stratum”. Picking “clusters” (chunks) from files will keep the variability of the possible features constant (and high).<br />3. Get a language model based on the training corpus. Create 1-, 2-, 3-, 4-grams. Depending on the time, try a 5-grams. Check what’s the distribution of frequencies (at some point the difference between frequencies will probably plateau, meaning that the N-grams will be unique, so no decision power at that point).<br />4. measure the accuracy of the model on the test corpus.<br />5. Get a model based on back-off. Get a measure of accuracy on the test corpus.<br />6. Get a model based on smoothing techniques. Get a measure of accuracy on the test corpus.<br />7. Compare all models, draw conclusion</p>
+<p>Steps:<br />1. Remove profanities from files<br /> * A new set of files in a folder called <strong>1_clean</strong>, called “clean_en_US.blogs.txt”, etc<br /> * At same time, remove most punctuation and lower case everything (prepare for N-grams analysis)<br />2. Break the files, get a training corpus, a test corpus, and a smaller corpus for a possible cross-validation step.<br /> * A new set of files, in folders <strong>2_train</strong>, <strong>2_test</strong>, <strong>2_cross</strong>. The sizes will follow the percentages 70% for training, 20% for testing, 10% for cross validation.<br /> * The process of splitting will be a simple one, break the files in somewhat equal 10 sizes. Pick randomly from these pieces, 2 for testing and 1 for cross-validation, the rest will be the training set. While in general a more precise method should be used, in this case I think this method will be enough, meaning that the collection of blogs/news/tweets is already pretty mixed, more like a “cluster” than a “stratum”. Picking “clusters” (chunks) from files will keep the variability of the possible features constant (and high).<br />3. Get a language model based on the training corpus. Create 1-, 2-, 3-, 4-grams. Depending on the time, try a 5-grams. Check what’s the distribution of frequencies (at some point the difference between frequencies will probably plateau, meaning that the N-grams will be unique, so no decision power at that point).<br />4. measure the accuracy of the model on the test corpus.<br />5. Get a model based on back-off. Get a measure of accuracy on the test corpus.<br />6. Get a model based on smoothing techniques. Get a measure of accuracy on the test corpus.<br />7. Compare all models, draw conclusion.</p>
 </div>
 <div id="task-0---understanding-the-problem" class="section level2">
 <h2>Task 0 - Understanding the problem</h2>
@@ -97,7 +100,7 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 <li>models
 <ul>
 <li>the immediate model for predicting following words one could think of is the N-grams: Markov probabilistic model for associating a certain probability to words, depending on the previous (N-1) words.</li>
-<li>for selecting the language and/or switching languages, a simple rule based model could be imagined: based on the stopwords typed with the keyboard, decide the language. Allow for changing on the fly, depending on changing the overall count of stopwords in a certain language. Another idea on this line, the model could flip between languages based on the N-grams (“a 4-gram with a different language word at the end maybe should take into consideration 3-, 2-grams instead of an unexisting 4-gram”).</li>
+<li>for selecting the language and/or switching languages, a simple rule based model could be imagined: based on the stopwords typed with the keyboard, decide the language. Allow for changing on the fly, depending on changing the overall count of stopwords in a certain language. Another idea on this line, the model could flip between languages based on the N-grams (“a 4-Gram with a different language word at the end maybe should take into consideration 3-, 2-grams instead of an non-existing 4-Gram”).</li>
 <li>a model based on more and more input from a user should be designed - the users have different “styles” (vocabularies, N-grams, subjects of conversation), so the keyboard should, in general, allow for a user-specific model. This should evolve based on accumulating more input, and the keyboard should behave based on the simple rule “is the N-gram in the user model? If not, use the general model…” (to be determined).</li>
 </ul></li>
 </ul>
@@ -116,10 +119,10 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 <ul>
 <li>Tokenization: stemming, punctuation, analysis of linked and contracted words (“it’s”, “-”).</li>
 <li>Sentence and structure detection: deal with punctuation.</li>
-<li>Part of speech tagging, normalization: resolve ambiguities related to polysemantic words.</li>
-<li>Named entity resolution: associate the word to a concept, use ontologies and synonims.</li>
+<li>Part of speech tagging, normalization: resolve ambiguities related to poly semantic words.</li>
+<li>Named entity resolution: associate the word to a concept, use ontologies and synonyms.</li>
 <li>Parsing: find the structure of a sentence.</li>
-<li>Building a language model: use N-grams, rules, synonims. Find a representation of the language model.</li>
+<li>Building a language model: use N-grams, rules, synonyms. Find a representation of the language model.</li>
 </ul></li>
 <li><em>What are some common issues in the analysis of text data?</em> One could think of: language (each language has its own specifics), problems with stemming (conjugations, declensions), punctuation (ambiguities), grammar (improper), semantic ambiguities, negations.</li>
 <li><em>What is the relationship between NLP and the concepts you have learned in the Specialization?</em> I would say that the most important connection is the statistic/probabilistic treatment of the language models (Markov chains, N-grams).</li>
@@ -199,12 +202,12 @@ removeProfanities &lt;- function(line) {
 <li><em>How do you find typos in the data?</em> By comparing with the vocabulary and some rules for stemming.</li>
 <li><em>How do you identify garbage, or the wrong language?</em> By an <em>admittedly long</em> series of unrecognized words. Not sure if one can make a clear distinction between “garbage” and “wrong language”, unless we can be confident that we do have a complete set of languages defined in the system - if the text doesn’t <em>belong</em> in any of the languages, then is <em>garbage</em>.</li>
 <li><em>How do you define profanity? How do you ensure you don’t remove words you want to include?</em> One could include a list of profanities with variations (some simplistic regular expressions might also work). Not sure a <em>minimal edit distance</em> approach would work, since would be very difficult, based on a minimal edit distance approach, to allow words like <em>duck</em> or so.</li>
-<li><em>How do you handle capital and lower cases?</em> Probably the simplest way is to lowercase everything in the model. They could play a role in part of speech analyis (names, etc, which should not be confused with some misspelled word).</li>
+<li><em>How do you handle capital and lower cases?</em> Probably the simplest way is to lowercase everything in the model. They could play a role in part of speech analysis (names, etc, which should not be confused with some misspelled word).</li>
 <li><em>What is the best set of features you might use to predict the next word?</em>
 <ul>
 <li>N-grams (4- or 5-grams), learned from these files or from the user’s input</li>
 <li>Part of speech analysis (grammar rules for the respective language)</li>
-<li>NOTE. the 4 and 5-grams will actually help a lot with the grammar as well, since most gramatical constructions will be well defined by 4 or 5 words expressions (“I ..” is very often followed by a verb, etc).</li>
+<li>NOTE. the 4 and 5-grams will actually help a lot with the grammar as well, since most grammatical constructions will be well defined by 4 or 5 words expressions (“I ..” is very often followed by a verb, etc).</li>
 </ul></li>
 </ul>
 <p>At the end of the profanity removal task, I’ll have clean files, no punctuation, all in lower case. These files will be ready to be analyzed for N-gram extraction.</p>
@@ -217,9 +220,8 @@ removeProfanities &lt;- function(line) {
 </ul>
 <pre class="r"><code>## Java stuff
 Sys.setenv(JAVA_HOME=&quot;&quot;)
-options(java.parameters=&quot;-Xmx14g&quot;)
-
-## create a tokenizer in RWeka
+options(java.parameters=&quot;-Xmx14g&quot;)</code></pre>
+<pre class="r"><code>## create a tokenizer in RWeka
 tokenizer &lt;- function(x) NGramTokenizer(x, Weka_control(min = 1, max = 5))
 ## load a corpus from a folder
 en_texts &lt;- VCorpus(DirSource(directory=&quot;data/en_US/clean&quot;, encoding=&quot;UTF-8&quot;), 
@@ -232,7 +234,7 @@ en_texts &lt;- tm_map(x=en_texts, FUN=removeNumbers)
 ## create a term document matrix, with the frequencies
 tdm &lt;- TermDocumentMatrix(en_texts, control=list(tokenizer=tokenizer))</code></pre>
 <p><strong>Note</strong>: loading in parallel on RWeka/MacOS TermDocumentMatrix crashes with some obscure errors. Suggestion to use option mc.cores=1.<br /><strong>Note</strong>: working on a “bigger” TermDocumentMatrix crashes the JVM behind RWeka, OutOfMemory. Suggestion to use option java.parameters=“-Xmx4g” (heap size up to 4G)<br /><strong>Note</strong>: rJava library has problems if the environment variable JAVA_HOME is set. So unset it before loading rJava or RWeka (Sys.setenv(JAVA_HOME=“”))</p>
-<p>Some stats with regards to time required to analyze the whole corpus (english):</p>
+<p>Some stats with regards to time required to analyze the whole corpus (English):</p>
 <pre class="html"><code>N-grams |    User   System    Elapsed  
 ------- | ---------------------------  
 1-Gram  |  219.54     1.44     210.80   
@@ -244,35 +246,35 @@ tdm &lt;- TermDocumentMatrix(en_texts, control=list(tokenizer=tokenizer))</code>
 <ul>
 <li>1-Grams:
 <ul>
-<li>Total number: ~700,000</li>
+<li>Total different: ~700,000</li>
 <li>Highest frequency: ~3 millions</li>
 <li>Number of 1’s (frequency == 1): ~420,000</li>
 <li>6 Most used: “the”, “and”, “that”, “for”, “you”, “with”<br /></li>
 </ul></li>
 <li>2-Grams:
 <ul>
-<li>Total number: ~11 millions<br /></li>
+<li>Total different: ~11 millions<br /></li>
 <li>Highest frequency: ~300,000<br /></li>
 <li>Number of 1’s (frequency == 1): ~7.5 millions</li>
 <li>6 Most used: “of the”, “in the”, “to the”, “for the”, “on the”, “I’m”<br /></li>
 </ul></li>
 <li>3-Grams:
 <ul>
-<li>Total number: ~32 millions<br /></li>
+<li>Total different: ~32 millions<br /></li>
 <li>Highest frequency: 30,000<br /></li>
 <li>Number of 1’s (frequency == 1): ~27 millions<br /></li>
 <li>6 Most used: “I don’t”, “one of the”, “a lot of”, “thanks for the”, “I can’t”, “it’s a”</li>
 </ul></li>
 <li>4-Grams:
 <ul>
-<li>Total number: ~48 millions<br /></li>
+<li>Total different: ~48 millions<br /></li>
 <li>Highest frequency: 5884<br /></li>
 <li>Number of 1’s (frequency == 1): ~45 millions<br /></li>
 <li>6 Most used: “can’t wait to”, “i don’t know”, “i’m going to”, “the end of the”, “the rest of the”, “at the end of”</li>
 </ul></li>
 <li>5-Grams:
 <ul>
-<li>Total number: ~53 millions<br /></li>
+<li>Total different: ~53 millions<br /></li>
 <li>Highest frequency: 2374</li>
 <li>Number of 1’s (frequency == 1): 51.7 millions (most of them are encountered only once)<br /></li>
 <li>6 Most used: “at the end of the”, “can’t wait to see”, “i don’t want to”, “i can’t wait to”, “it’s going to be”, “in the middle of the”</li>
@@ -282,11 +284,48 @@ tdm &lt;- TermDocumentMatrix(en_texts, control=list(tokenizer=tokenizer))</code>
 <p><img src="data:image/png;base64,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" alt="alt text" /></p>
 <p><strong>Questions</strong></p>
 <ul>
-<li><em>Some words are more frequent than others - what are the distributions of word frequencies?</em></li>
-<li><em>What are the frequencies of 2-grams and 3-grams in the dataset?</em></li>
-<li><em>How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?</em></li>
-<li><em>How do you evaluate how many of the words come from foreign languages?</em></li>
-<li><em>Can you think of a way to increase the coverage – identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?</em></li>
+<li><em>Some words are more frequent than others - what are the distributions of word frequencies?</em> The distribution was described above, see the plot for 1-Grams.<br /></li>
+<li><em>What are the frequencies of 2-grams and 3-grams in the dataset?</em> As described above, the distribution of 2- and 3-grams are very similar to the 1-Grams, with the difference that the max frequency is a lot lower (so the slope starts lower), and the tail to the right is a lot longer.</li>
+<li><em>How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?</em> For this I started with the frequency sorted dictionary and I calculated quantiles for 0.5, 0.9 and 0.99. See the <em>calculateQuantile</em> function underneath. The results: <strong>314 (high frequency) words to cover 50% of the word instances, 10,760 words to cover 90%, and 22,604 to cover 99% of the word instances.</strong><br /></li>
+<li><em>How do you evaluate how many of the words come from foreign languages?</em> A cross comparison of the low frequency words with a foreign language dictionary could be imagined. The “winner” is the one which has those words in the higher frequency.<br /></li>
+<li><em>Can you think of a way to increase the coverage – identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?</em> One could think of a using synonyms to reduce the overall number of words in the text. Suggestions could be given based on synonyms.</li>
+</ul>
+<pre class="r"><code>## calculate quantiles, quick and dirty method. We have already a probability distribution, 
+## in a vector, sorted decreasingly by probability. Loop through the elements, stop when
+## the desired quantile is achieved. 
+
+calculateQuantile &lt;- function(distribution, quantile) {
+  ## careful, no param checking here. 
+  prob &lt;- 0
+  for (i in 1:length(distribution)) {
+    prob &lt;- prob + distribution[i]
+    if (prob &gt; quantile){
+      print(prob)
+      return(i)
+    }
+  }
+}</code></pre>
+</div>
+<div id="task-3---modeling" class="section level2">
+<h2>Task 3 - Modeling</h2>
+<p><em>The goal here is to build your first simple model for the relationship between words. This is the first step in building a predictive text mining application. You will explore simple models and discover more complicated modeling techniques.</em></p>
+<p><strong>Tasks</strong></p>
+<ul>
+<li><em>Build basic n-gram model - using the exploratory analysis you performed, build a basic n-gram model (<a href="http://en.wikipedia.org/wiki/N-gram">http://en.wikipedia.org/wiki/N-gram</a>) for predicting the next word based on the previous 1, 2, or 3 words.</em> At this point I have all of the 1- to 5-Grams constructed, saved separately as files (some are &gt;6GB when loaded in R, so playing with them becomes a problem). I might need to filter all of the N-Grams, so they contain only the Grams with frequencies &gt; 1 (exception the 1-Grams, I’ll use those as dictionary).<br /></li>
+<li><em>Build a model to handle unseen n-grams - in some cases people will want to type a combination of words that does not appear in the corpora. Build a model to handle cases where a particular n-gram isn’t observed.</em> I’ll use a backoff strategy, if there is no suggestion for the last 4 words (using 5-Grams and associated probabilities), then use last 3, if not, last 2, if not, last 1, and, if still not, use the highest 1-Gram probabilities (“the”, “end”, etc).</li>
+</ul>
+<p><strong>Questions</strong></p>
+<ul>
+<li><em>How can you efficiently store an n-gram model (think Markov Chains)?</em> As suggested, a Markov Chain could be employed. Starting with the list of 1-Grams (probabilities of one-word together with the list of one-words), I could start parsing the 2-Grams. F</li>
+<li><em>How can you use the knowledge about word frequencies to make your model smaller and more efficient?</em> One idea is to completely drop a bunch of the “rarely seen” Grams (meaning for example the ones with frequency 1). This would mean dropping about 75% of the 2-Grams (I leave the 1-Grams as they are), more than 80% of the 3-Grams, almost 95% from the 4- and 5Grams.<br /></li>
+<li><em>How many parameters do you need (i.e. how big is n in your n-gram model)?</em> This model I’m building will go up to 5-Grams. Frankly, looking at the texts, it seems that there is little predictive power in the groups of 5 (usually the 5 ’th word is already another stopword, so something that would come up higher anyway, with any of the 2/3/4-Gram models).<br /></li>
+<li><em>Can you think of simple ways to “smooth” the probabilities (think about giving all n-grams a non-zero probability even if they aren’t observed in the data) ?</em> The literature[1] seems to point to several methods, Laplace, Good-Turing, Kneser-Ney methods.<br /></li>
+<li><em>How do you evaluate whether your model is any good?</em> I already broke the corpus into train, test and cross-validation. With the model built on train set, I intend to verify the accuracy of the model, in 2 accuracies measurements.
+<ul>
+<li>First, “estimate next word”. Loop through the test corpus, for each word use the model to estimate next word. Use the model to return ONLY the highest probability one. Compare the model given answer with the actual word. Count the hits/misses, get accuracy.<br /></li>
+<li>Second, “estimate next possible 3 words”. This is different, in the way that a software keyboard could give the user several options in regards to the next possible word. In my case, I’ll use 3 options. With this in mind, the process will be: parse the testing corpus, and for each word use the model to return 3 possibilities. If the actual next word is in those 3, consider it a “hit”. Count hits and misses, calculate accuracy.<br /></li>
+</ul></li>
+<li><em>How can you use backoff models (<a href="http://en.wikipedia.org/wiki/Katz's_back-off_model">http://en.wikipedia.org/wiki/Katz's_back-off_model</a>) to estimate the probability of unobserved n-grams?</em> As mentioned above, if there is no suggestion for the last 4 words (using 5-Grams and associated probabilities), then use last 3, if not, last 2, if not, last 1, and, if still not, use the highest 1-Gram probabilities (“the”, “end”, etc).</li>
 </ul>
 </div>
 <div id="references" class="section level2">
