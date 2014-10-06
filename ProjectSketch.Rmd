@@ -321,6 +321,19 @@ Task 3 - Modeling
   * *Build basic n-gram model - using the exploratory analysis you performed, build a basic n-gram model (http://en.wikipedia.org/wiki/N-gram) for predicting the next word based on the previous 1, 2, or 3 words.* At this point I have all of the 1- to 5-Grams constructed, saved separately as files (some are >6GB when loaded in R, so playing with them becomes a problem). I might need to filter all of the N-Grams, so they contain only the Grams with frequencies > 1 (exception the 1-Grams, I'll use those as dictionary).   
   * *Build a model to handle unseen n-grams - in some cases people will want to type a combination of words that does not appear in the corpora. Build a model to handle cases where a particular n-gram isn't observed.*  I'll use a backoff strategy, if there is no suggestion for the last 4 words (using 5-Grams and associated probabilities), then use last 3, if not, last 2, if not, last 1, and, if still not, use the highest 1-Gram probabilities ("the", "end", etc).   
   
+*Some tests with the N-gram models.*  
+For these tests, I'll use 2 accuracy measurements.  
+    * First, "estimate next word". Loop through the test corpus, for each word use the model to estimate next word. Use the model to return ONLY the highest probability one. Compare the model given answer with the actual word. Count the hits/misses, get accuracy.   
+    * Second, "estimate next possible 3 words". This is different, in the way that a software keyboard could give the user several options in regards to the next possible word. In my case, I'll use 3 options. With this in mind, the process will be: parse the testing corpus, and for each word use the model to return 3 possibilities. If the actual next word is in those 3, consider it a "hit". Count hits and misses, calculate accuracy.  
+    
+* **1-Gram test, 1 possible word**. The test is done on a test file (not involved in training), length ~4 million words. **Accuracy: ~5%** (basically this model just counts the "the" words in the test vector).  
+* **1-Gram test, 3 possible words**. Same test file, length ~4 million words. **Accuracy: ~10%** (this time counts "the", "to", "and").  
+* **2-Gram test, 1 possible word**. Same test file, this time involve 2-Grams. 
+* **2-Gram test, 3 possible word**. Same test file, this time involve 2-Grams. 
+
+
+
+
   
 **Questions**  
   
@@ -348,64 +361,70 @@ Task 4 - Prediction
 **Tasks**  
 
 * *Build a predictive model based on the previous data modeling steps - you may combine the models in any way you think is appropriate.*  
-* Evaluate the model for efficiency and accuracy - use timing software to evaluate the computational complexity of your model. Evaluate the model accuracy using different metrics like perplexity, accuracy at the first word, second word, and third word.  
+* *Evaluate the model for efficiency and accuracy - use timing software to evaluate the computational complexity of your model. Evaluate the model accuracy using different metrics like perplexity, accuracy at the first word, second word, and third word.*  
 
 
 **Questions**  
 
-* How does the model perform for different choices of the parameters and size of the model?   
-* How much does the model slow down for the performance you gain?  
-* Does perplexity correlate with the other measures of accuracy?  
-* Can you reduce the size of the model (number of parameters) without reducing performance?   
+* *How does the model perform for different choices of the parameters and size of the model?*   
+* *How much does the model slow down for the performance you gain?*  
+* *Does perplexity correlate with the other measures of accuracy?*  
+* *Can you reduce the size of the model (number of parameters) without reducing performance?*   
 
 
 
 Task 5 - Creative exploration
-So far you have used basic models to understand and predict words. In this next task, your goal is to use all the resources you have available to you (from the Data Science Specialization, resources on the web, or your own creativity) to improve the predictive accuracy while reducing computational runtime and model complexity (if you can). Be sure to hold out a test set to evaluate the new, more creative models you are building.
+-----------------------------
 
-Tasks to accomplish
+*So far you have used basic models to understand and predict words. In this next task, your goal is to use all the resources you have available to you (from the Data Science Specialization, resources on the web, or your own creativity) to improve the predictive accuracy while reducing computational runtime and model complexity (if you can). Be sure to hold out a test set to evaluate the new, more creative models you are building.*
 
-Explore new models and data to improve your predictive model.
-Evaluate your new predictions on both accuracy and efficiency. 
+**Tasks**  
 
-Questions to consider
+*Explore new models and data to improve your predictive model.*  
+*Evaluate your new predictions on both accuracy and efficiency.*  
 
-What are some alternative data sets you could consider using? 
-What are ways in which the n-gram model may be inefficient?
-What are the most commonly missed n-grams? Can you think of a reason why they would be missed and fix that? 
-What are some other things that other people have tried to improve their model? 
-Can you estimate how uncertain you are about the words you are predicting? 
+**Questions**
+
+* *What are some alternative data sets you could consider using?*   
+* *What are ways in which the n-gram model may be inefficient?*  
+* *What are the most commonly missed n-grams? Can you think of a reason why they would be missed and fix that?*   
+* *What are some other things that other people have tried to improve their model?*   
+* *Can you estimate how uncertain you are about the words you are predicting?*  
 
 
 
 Task 6 - Reproducible documentation of results
-This task is to build the documentation describing how you came to your final predictive model. You should summarize efficiently your analysis and model building steps. The goal is to communicate everything you learned about the data set in a succinct way. 
+----------------------------------------------
 
-Tasks to accomplish
+*This task is to build the documentation describing how you came to your final predictive model. You should summarize efficiently your analysis and model building steps. The goal is to communicate everything you learned about the data set in a succinct way.*
 
-Create a reproducible report explaining your analysis - pay particular attention to keeping the report succinct and easy to follow. Be sure to tell a story. 
+**Tasks**  
 
-Questions to consider
+*Create a reproducible report explaining your analysis - pay particular attention to keeping the report succinct and easy to follow. Be sure to tell a story.*  
 
-What parts of the data analysis should you report? 
-What order makes the most sense to help another person understand what you have done? 
-How do you balance completeness and efficiency? What are the "need to knows"?
+**Questions**  
+
+* *What parts of the data analysis should you report?*    
+* *What order makes the most sense to help another person understand what you have done?*  
+* *How do you balance completeness and efficiency? What are the "need to knows"?*  
 
 
 
 Task 7 - Data Product
-The goal of this exercise is to create a product to highlight the prediction algorithm that you have built and to provide an interface that can be accessed by others. You may choose to create either a prediction API through Yhat or a Shiny app. 
+---------------------
 
-Tasks to accomplish
+*The goal of this exercise is to create a product to highlight the prediction algorithm that you have built and to provide an interface that can be accessed by others. You may choose to create either a prediction API through Yhat or a Shiny app.*  
 
-Create a data product to show off your prediction algorithm You may create either an API that accepts an n-gram and predicts the next word or a Shiny app that does the same thing. 
+**Tasks**  
 
-Questions to consider
+*Create a data product to show off your prediction algorithm You may create either an API that accepts an n-gram and predicts the next word or a Shiny app that does the same thing.*  
 
-What are the most interesting ways you could show off your algorithm?
-Are there any data visualizations you think might be helpful (look at the Swiftkey data dashboard if you have it loaded on your phone)?
-How can you demonstrate the usefulness of your Yhat-based API? 
-How should you document the use of your data product (separately from how you created it) so that others can rapidly deploy your algorithm?
+**Questions**  
+
+* *What are the most interesting ways you could show off your algorithm?*  
+* *Are there any data visualizations you think might be helpful (look at the Swiftkey data dashboard if you have it loaded on your phone)?*  
+* *How can you demonstrate the usefulness of your Yhat-based API?*   
+* *How should you document the use of your data product (separately from how you created it) so that others can rapidly deploy your algorithm?*  
 
 
 
