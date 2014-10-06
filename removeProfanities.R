@@ -4,8 +4,14 @@
 ## of characters in the regex and will replace, if needed, profanities with (...). 
 ## Will also write only lower case in the "clean" files. 
 
-library(stringi)
+## Java stuff
+Sys.setenv(JAVA_HOME="")
+options(java.parameters="-Xmx14g")
 
+## load RWeka, tm libs
+library(RWeka)
+library(tm)
+library(stringi)
 
 ## list of profanities
 profanities <- c("acrotomophilia", "anal", "anilingus", "arsehole", "ass", "asshole", "assmunch", 
@@ -32,9 +38,11 @@ profanities <- c("acrotomophilia", "anal", "anilingus", "arsehole", "ass", "assh
 
 
 ## function, will remove profanities from a line and will return the line with no punctuation, 
+## uses Alphabetic tokenizer from RWeka
 removeProfanities <- function(line) {
   ## leave the # and ' alone
-  tokens <- strsplit(line, "[~`!@$%^&*\\(\\)\\-_=+,<.>/?\\|\\{} \"]")
+  ##  tokens <- strsplit(line, "[~`!@$%^&*\\(\\)\\-_=+,<.>/?\\|\\{} \"]")
+  tokens <- AlphabeticTokenizer(line)
   newline <- ""
   for (token in unlist(tokens)){
     if (token %in% profanities){
@@ -68,7 +76,6 @@ cleanFile <- function(fileInput, folderOutput) {
   output <- file(paste(folderOutput, "/clean_", fileInput, sep=""), "w", encoding = "UTF-8")
   
   for (line in lines){
-    line <- iconv(line, to = "UTF-8")
     ## readlines, clean them, write them in the new file. 
     cleanLine <- removeProfanities(line)
     writeLines(text = cleanLine, con = output)

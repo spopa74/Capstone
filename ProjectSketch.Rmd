@@ -150,8 +150,8 @@ cleanFile <- function(fileInput, folderOutput) {
 
 * Profanity filtering - removing profanity and other words you do not want to predict. 
 The main idea here is to replace what is being perceived as profanity, with some predefined keyword. A personal choice here, using "(...)" instead of a profanity. Trivial replacement in the vector of tokens. Use the list at https://github.com/shutterstock/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/blob/master/en (a simplified subset of it). I used simple replacement instead of regular expression matching, for two reasons: 
-    * the regular expressions matching will be also prone to errors (" *uck" or similar will also filter "duck")  
-    * speed  
+      * the regular expressions matching will be also prone to errors (" *uck" or similar will also filter "duck")  
+      * speed  
 
 ```{r}
 library(stringi)
@@ -162,7 +162,9 @@ profanities <- c("acrotomophilia", "anal", "anilingus", "arsehole")
 ## function, will remove profanities from a line and will return the line with no punctuation, 
 removeProfanities <- function(line) {
   ## leave the # and ' alone
-  tokens <- strsplit(line, "[~`!@$%^&*\\(\\)\\-_=+,<.>/?\\|\\{} \"]")
+  ## tokens <- strsplit(line, "[~`!@$%^&*\\(\\)\\-_=+,<.>/?\\|\\{} \"]")
+  tokens <- AlphabeticTokenizer(line)
+
   newline <- ""
   for (token in unlist(tokens)){
     if (token %in% profanities){
@@ -238,8 +240,8 @@ Some stats with regards to time required to analyze the whole corpus (English):
 ```html
 N-grams |    User   System    Elapsed  
 ------- | ---------------------------  
-1-Gram  |  219.54     1.44     210.80   
-2-Gram  |  840.21     3.73     823.12  
+1-Gram  |  773.86     1.77     775.69   
+2-Gram  |  916.21     5.79     902.12  
 3-Gram  | 2179.20     8.42    2153.49   
 4-Gram  | 2999.19     8.60    2969.92  
 5-Gram  | 3285.18     8.86    3258.52  
@@ -249,30 +251,30 @@ N-grams |    User   System    Elapsed
 *...Understand frequencies of words and word pairs - build figures and tables to understand variation in the frequencies of words and word pairs in the data.*
 
   * 1-Grams:  
-    * Total different: ~700,000
-    * Highest frequency: ~3 millions
-    * Number of 1's (frequency == 1): ~420,000
-    * 6 Most used: "the", "and", "that", "for", "you", "with"  
+    * Total different: ~443,000
+    * Highest frequency: ~3.3 millions
+    * Number of 1's (frequency == 1): ~229,000
+    * 6 Most used: "the", "to", "and", "a", "i", "of", "in", "it", "that"  
   * 2-Grams:  
-    * Total different: ~11 millions  
+    * Total different: ~10 millions  
     * Highest frequency: ~300,000  
-    * Number of 1's (frequency == 1): ~7.5 millions 
-    * 6 Most used: "of the", "in the", "to the", "for the", "on the", "I'm"  
+    * Number of 1's (frequency == 1): ~7.1 millions 
+    * 6 Most used: "of the", "in the", "it's", "i'm", "to the", "for the"  
   * 3-Grams:  
-    * Total different: ~32 millions  
-    * Highest frequency: 30,000  
+    * Total different: ~32.7 millions  
+    * Highest frequency: ~40,000  
     * Number of 1's (frequency == 1): ~27 millions   
-    * 6 Most used:  "I don't", "one of the", "a lot of", "thanks for the", "I can't", "it's a"
+    * 6 Most used:  "i don't", "one of the", "a lot of", "it's a", "i can't", "thanks for the"
   * 4-Grams:  
-    * Total different: ~48 millions  
-    * Highest frequency: 5884  
-    * Number of 1's (frequency == 1): ~45 millions    
-    * 6 Most used: "can't wait to", "i don't know", "i'm going to", "the end of the", "the rest of the", "at the end of"
+    * Total different: ~50 millions  
+    * Highest frequency: 7898  
+    * Number of 1's (frequency == 1): ~45.7 millions    
+    * 6 Most used: "i don't know", "i'm going to", "can't wait to", "the end of the", "I don't think", "don't want to"
   * 5-Grams:  
-    * Total different: ~53 millions  
-    * Highest frequency: 2374
-    * Number of 1's (frequency == 1): 51.7 millions (most of them are encountered only once)   
-    * 6 Most used: "at the end of the", "can't wait to see", "i don't want to", "i can't wait to", "it's going to be", "in the middle of the"
+    * Total different: ~55.7 millions  
+    * Highest frequency: 2630
+    * Number of 1's (frequency == 1): 53.7 millions (most of them are encountered only once)   
+    * 6 Most used: "at the end of the", "i don't want to", "can't wait to see", "it's going to be", "i can't wait to", "don't know that"
 
 As for a plot, I'll put just the 1-Grams plot (logarithm so we can see the "elbow"). The plots for the rest of the N-Grams will look VERY SIMILAR (except they have lower and lower frequencies, and longer and longer tails to the right - meaning more and more Grams with the count of 1). 
 
@@ -283,7 +285,7 @@ As for a plot, I'll put just the 1-Grams plot (logarithm so we can see the "elbo
 
 * *Some words are more frequent than others - what are the distributions of word frequencies?*  The distribution was described above, see the plot for 1-Grams.  
 * *What are the frequencies of 2-grams and 3-grams in the dataset?* As described above, the distribution of 2- and 3-grams are very similar to the 1-Grams, with the difference that the max frequency is a lot lower (so the slope starts lower), and the tail to the right is a lot longer. 
-* *How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?* For this I started with the frequency sorted dictionary and I calculated quantiles for 0.5, 0.9 and 0.99. See the *calculateQuantile* function underneath. The results: **314 (high frequency) words to cover 50% of the word instances, 10,760 words to cover 90%, and 22,604 to cover 99% of the word instances.**   
+* *How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?* For this I started with the frequency sorted dictionary and I calculated quantiles for 0.5, 0.9 and 0.99. See the *calculateQuantile* function underneath. The results: **107 (high frequency) words to cover 50% of the word instances, 6363 words to cover 90%, and 75607 to cover 99% of the word instances.**   
 * *How do you evaluate how many of the words come from foreign languages?* A cross comparison of the low frequency words with a foreign language dictionary could be imagined. The "winner" is the one which has those words in the higher frequency.  
 * *Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?* One could think of a using synonyms to reduce the overall number of words in the text. Suggestions could be given based on synonyms.  
 
@@ -333,7 +335,7 @@ Task 3 - Modeling
   * *How do you evaluate whether your model is any good?* I already broke the corpus into train, test and cross-validation. With the model built on train set, I intend to verify the accuracy of the model, in 2 accuracies measurements. 
     * First, "estimate next word". Loop through the test corpus, for each word use the model to estimate next word. Use the model to return ONLY the highest probability one. Compare the model given answer with the actual word. Count the hits/misses, get accuracy.   
     * Second, "estimate next possible 3 words". This is different, in the way that a software keyboard could give the user several options in regards to the next possible word. In my case, I'll use 3 options. With this in mind, the process will be: parse the testing corpus, and for each word use the model to return 3 possibilities. If the actual next word is in those 3, consider it a "hit". Count hits and misses, calculate accuracy.  
-  * *How can you use backoff models (http://en.wikipedia.org/wiki/Katz's_back-off_model) to estimate the probability of unobserved n-grams?* As mentioned above, if there is no suggestion for the last 4 words (using 5-Grams and associated probabilities), then use last 3, if not, last 2, if not, last 1, and, if still not, use the highest 1-Gram probabilities ("the", "end", etc).  
+  * *How can you use backoff models (http://en.wikipedia.org/wiki/Katz's_back-off_model) to estimate the probability of unobserved n-grams?* In general, by using the less-grams model. The Katz model lets probabilities compete: the probabiliy of an N-gram, vs. a N-1-gram, adjusted by a factor. In case of a unobserved N-gram, we fall back to a N-1 grams, and, if this doesn't exist either, continue.. Worst case scenario, fall back on the probability of a 1-Gram.   
 
 
 
@@ -355,6 +357,57 @@ Task 4 - Prediction
 * How much does the model slow down for the performance you gain?  
 * Does perplexity correlate with the other measures of accuracy?  
 * Can you reduce the size of the model (number of parameters) without reducing performance?   
+
+
+
+Task 5 - Creative exploration
+So far you have used basic models to understand and predict words. In this next task, your goal is to use all the resources you have available to you (from the Data Science Specialization, resources on the web, or your own creativity) to improve the predictive accuracy while reducing computational runtime and model complexity (if you can). Be sure to hold out a test set to evaluate the new, more creative models you are building.
+
+Tasks to accomplish
+
+Explore new models and data to improve your predictive model.
+Evaluate your new predictions on both accuracy and efficiency. 
+
+Questions to consider
+
+What are some alternative data sets you could consider using? 
+What are ways in which the n-gram model may be inefficient?
+What are the most commonly missed n-grams? Can you think of a reason why they would be missed and fix that? 
+What are some other things that other people have tried to improve their model? 
+Can you estimate how uncertain you are about the words you are predicting? 
+
+
+
+Task 6 - Reproducible documentation of results
+This task is to build the documentation describing how you came to your final predictive model. You should summarize efficiently your analysis and model building steps. The goal is to communicate everything you learned about the data set in a succinct way. 
+
+Tasks to accomplish
+
+Create a reproducible report explaining your analysis - pay particular attention to keeping the report succinct and easy to follow. Be sure to tell a story. 
+
+Questions to consider
+
+What parts of the data analysis should you report? 
+What order makes the most sense to help another person understand what you have done? 
+How do you balance completeness and efficiency? What are the "need to knows"?
+
+
+
+Task 7 - Data Product
+The goal of this exercise is to create a product to highlight the prediction algorithm that you have built and to provide an interface that can be accessed by others. You may choose to create either a prediction API through Yhat or a Shiny app. 
+
+Tasks to accomplish
+
+Create a data product to show off your prediction algorithm You may create either an API that accepts an n-gram and predicts the next word or a Shiny app that does the same thing. 
+
+Questions to consider
+
+What are the most interesting ways you could show off your algorithm?
+Are there any data visualizations you think might be helpful (look at the Swiftkey data dashboard if you have it loaded on your phone)?
+How can you demonstrate the usefulness of your Yhat-based API? 
+How should you document the use of your data product (separately from how you created it) so that others can rapidly deploy your algorithm?
+
+
 
 
 

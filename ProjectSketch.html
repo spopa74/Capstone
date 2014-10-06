@@ -178,7 +178,9 @@ profanities &lt;- c(&quot;acrotomophilia&quot;, &quot;anal&quot;, &quot;anilingu
 ## function, will remove profanities from a line and will return the line with no punctuation, 
 removeProfanities &lt;- function(line) {
   ## leave the # and ' alone
-  tokens &lt;- strsplit(line, &quot;[~`!@$%^&amp;*\\(\\)\\-_=+,&lt;.&gt;/?\\|\\{} \&quot;]&quot;)
+  ## tokens &lt;- strsplit(line, &quot;[~`!@$%^&amp;*\\(\\)\\-_=+,&lt;.&gt;/?\\|\\{} \&quot;]&quot;)
+  tokens &lt;- AlphabeticTokenizer(line)
+
   newline &lt;- &quot;&quot;
   for (token in unlist(tokens)){
     if (token %in% profanities){
@@ -237,8 +239,8 @@ tdm &lt;- TermDocumentMatrix(en_texts, control=list(tokenizer=tokenizer))</code>
 <p>Some stats with regards to time required to analyze the whole corpus (English):</p>
 <pre class="html"><code>N-grams |    User   System    Elapsed  
 ------- | ---------------------------  
-1-Gram  |  219.54     1.44     210.80   
-2-Gram  |  840.21     3.73     823.12  
+1-Gram  |  773.86     1.77     775.69   
+2-Gram  |  916.21     5.79     902.12  
 3-Gram  | 2179.20     8.42    2153.49   
 4-Gram  | 2999.19     8.60    2969.92  
 5-Gram  | 3285.18     8.86    3258.52  </code></pre>
@@ -246,38 +248,38 @@ tdm &lt;- TermDocumentMatrix(en_texts, control=list(tokenizer=tokenizer))</code>
 <ul>
 <li>1-Grams:
 <ul>
-<li>Total different: ~700,000</li>
-<li>Highest frequency: ~3 millions</li>
-<li>Number of 1’s (frequency == 1): ~420,000</li>
-<li>6 Most used: “the”, “and”, “that”, “for”, “you”, “with”<br /></li>
+<li>Total different: ~443,000</li>
+<li>Highest frequency: ~3.3 millions</li>
+<li>Number of 1’s (frequency == 1): ~229,000</li>
+<li>6 Most used: “the”, “to”, “and”, “a”, “i”, “of”, “in”, “it”, “that”<br /></li>
 </ul></li>
 <li>2-Grams:
 <ul>
-<li>Total different: ~11 millions<br /></li>
+<li>Total different: ~10 millions<br /></li>
 <li>Highest frequency: ~300,000<br /></li>
-<li>Number of 1’s (frequency == 1): ~7.5 millions</li>
-<li>6 Most used: “of the”, “in the”, “to the”, “for the”, “on the”, “I’m”<br /></li>
+<li>Number of 1’s (frequency == 1): ~7.1 millions</li>
+<li>6 Most used: “of the”, “in the”, “it’s”, “i’m”, “to the”, “for the”<br /></li>
 </ul></li>
 <li>3-Grams:
 <ul>
-<li>Total different: ~32 millions<br /></li>
-<li>Highest frequency: 30,000<br /></li>
+<li>Total different: ~32.7 millions<br /></li>
+<li>Highest frequency: ~40,000<br /></li>
 <li>Number of 1’s (frequency == 1): ~27 millions<br /></li>
-<li>6 Most used: “I don’t”, “one of the”, “a lot of”, “thanks for the”, “I can’t”, “it’s a”</li>
+<li>6 Most used: “i don’t”, “one of the”, “a lot of”, “it’s a”, “i can’t”, “thanks for the”</li>
 </ul></li>
 <li>4-Grams:
 <ul>
-<li>Total different: ~48 millions<br /></li>
-<li>Highest frequency: 5884<br /></li>
-<li>Number of 1’s (frequency == 1): ~45 millions<br /></li>
-<li>6 Most used: “can’t wait to”, “i don’t know”, “i’m going to”, “the end of the”, “the rest of the”, “at the end of”</li>
+<li>Total different: ~50 millions<br /></li>
+<li>Highest frequency: 7898<br /></li>
+<li>Number of 1’s (frequency == 1): ~45.7 millions<br /></li>
+<li>6 Most used: “i don’t know”, “i’m going to”, “can’t wait to”, “the end of the”, “I don’t think”, “don’t want to”</li>
 </ul></li>
 <li>5-Grams:
 <ul>
-<li>Total different: ~53 millions<br /></li>
-<li>Highest frequency: 2374</li>
-<li>Number of 1’s (frequency == 1): 51.7 millions (most of them are encountered only once)<br /></li>
-<li>6 Most used: “at the end of the”, “can’t wait to see”, “i don’t want to”, “i can’t wait to”, “it’s going to be”, “in the middle of the”</li>
+<li>Total different: ~55.7 millions<br /></li>
+<li>Highest frequency: 2630</li>
+<li>Number of 1’s (frequency == 1): 53.7 millions (most of them are encountered only once)<br /></li>
+<li>6 Most used: “at the end of the”, “i don’t want to”, “can’t wait to see”, “it’s going to be”, “i can’t wait to”, “don’t know that”</li>
 </ul></li>
 </ul>
 <p>As for a plot, I’ll put just the 1-Grams plot (logarithm so we can see the “elbow”). The plots for the rest of the N-Grams will look VERY SIMILAR (except they have lower and lower frequencies, and longer and longer tails to the right - meaning more and more Grams with the count of 1).</p>
@@ -286,7 +288,7 @@ tdm &lt;- TermDocumentMatrix(en_texts, control=list(tokenizer=tokenizer))</code>
 <ul>
 <li><em>Some words are more frequent than others - what are the distributions of word frequencies?</em> The distribution was described above, see the plot for 1-Grams.<br /></li>
 <li><em>What are the frequencies of 2-grams and 3-grams in the dataset?</em> As described above, the distribution of 2- and 3-grams are very similar to the 1-Grams, with the difference that the max frequency is a lot lower (so the slope starts lower), and the tail to the right is a lot longer.</li>
-<li><em>How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?</em> For this I started with the frequency sorted dictionary and I calculated quantiles for 0.5, 0.9 and 0.99. See the <em>calculateQuantile</em> function underneath. The results: <strong>314 (high frequency) words to cover 50% of the word instances, 10,760 words to cover 90%, and 22,604 to cover 99% of the word instances.</strong><br /></li>
+<li><em>How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?</em> For this I started with the frequency sorted dictionary and I calculated quantiles for 0.5, 0.9 and 0.99. See the <em>calculateQuantile</em> function underneath. The results: <strong>107 (high frequency) words to cover 50% of the word instances, 6363 words to cover 90%, and 75607 to cover 99% of the word instances.</strong><br /></li>
 <li><em>How do you evaluate how many of the words come from foreign languages?</em> A cross comparison of the low frequency words with a foreign language dictionary could be imagined. The “winner” is the one which has those words in the higher frequency.<br /></li>
 <li><em>Can you think of a way to increase the coverage – identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?</em> One could think of a using synonyms to reduce the overall number of words in the text. Suggestions could be given based on synonyms.</li>
 </ul>
@@ -330,7 +332,7 @@ calculateQuantile &lt;- function(distribution, quantile) {
 <li>First, “estimate next word”. Loop through the test corpus, for each word use the model to estimate next word. Use the model to return ONLY the highest probability one. Compare the model given answer with the actual word. Count the hits/misses, get accuracy.<br /></li>
 <li>Second, “estimate next possible 3 words”. This is different, in the way that a software keyboard could give the user several options in regards to the next possible word. In my case, I’ll use 3 options. With this in mind, the process will be: parse the testing corpus, and for each word use the model to return 3 possibilities. If the actual next word is in those 3, consider it a “hit”. Count hits and misses, calculate accuracy.<br /></li>
 </ul></li>
-<li><em>How can you use backoff models (<a href="http://en.wikipedia.org/wiki/Katz's_back-off_model">http://en.wikipedia.org/wiki/Katz's_back-off_model</a>) to estimate the probability of unobserved n-grams?</em> As mentioned above, if there is no suggestion for the last 4 words (using 5-Grams and associated probabilities), then use last 3, if not, last 2, if not, last 1, and, if still not, use the highest 1-Gram probabilities (“the”, “end”, etc).</li>
+<li><em>How can you use backoff models (<a href="http://en.wikipedia.org/wiki/Katz's_back-off_model">http://en.wikipedia.org/wiki/Katz's_back-off_model</a>) to estimate the probability of unobserved n-grams?</em> In general, by using the less-grams model. The Katz model lets probabilities compete: the probabiliy of an N-gram, vs. a N-1-gram, adjusted by a factor. In case of a unobserved N-gram, we fall back to a N-1 grams, and, if this doesn’t exist either, continue.. Worst case scenario, fall back on the probability of a 1-Gram.</li>
 </ul>
 </div>
 <div id="task-4---prediction" class="section level2">
@@ -348,6 +350,21 @@ calculateQuantile &lt;- function(distribution, quantile) {
 <li>Does perplexity correlate with the other measures of accuracy?<br /></li>
 <li>Can you reduce the size of the model (number of parameters) without reducing performance?</li>
 </ul>
+<p>Task 5 - Creative exploration So far you have used basic models to understand and predict words. In this next task, your goal is to use all the resources you have available to you (from the Data Science Specialization, resources on the web, or your own creativity) to improve the predictive accuracy while reducing computational runtime and model complexity (if you can). Be sure to hold out a test set to evaluate the new, more creative models you are building.</p>
+<p>Tasks to accomplish</p>
+<p>Explore new models and data to improve your predictive model. Evaluate your new predictions on both accuracy and efficiency.</p>
+<p>Questions to consider</p>
+<p>What are some alternative data sets you could consider using? What are ways in which the n-gram model may be inefficient? What are the most commonly missed n-grams? Can you think of a reason why they would be missed and fix that? What are some other things that other people have tried to improve their model? Can you estimate how uncertain you are about the words you are predicting?</p>
+<p>Task 6 - Reproducible documentation of results This task is to build the documentation describing how you came to your final predictive model. You should summarize efficiently your analysis and model building steps. The goal is to communicate everything you learned about the data set in a succinct way.</p>
+<p>Tasks to accomplish</p>
+<p>Create a reproducible report explaining your analysis - pay particular attention to keeping the report succinct and easy to follow. Be sure to tell a story.</p>
+<p>Questions to consider</p>
+<p>What parts of the data analysis should you report? What order makes the most sense to help another person understand what you have done? How do you balance completeness and efficiency? What are the “need to knows”?</p>
+<p>Task 7 - Data Product The goal of this exercise is to create a product to highlight the prediction algorithm that you have built and to provide an interface that can be accessed by others. You may choose to create either a prediction API through Yhat or a Shiny app.</p>
+<p>Tasks to accomplish</p>
+<p>Create a data product to show off your prediction algorithm You may create either an API that accepts an n-gram and predicts the next word or a Shiny app that does the same thing.</p>
+<p>Questions to consider</p>
+<p>What are the most interesting ways you could show off your algorithm? Are there any data visualizations you think might be helpful (look at the Swiftkey data dashboard if you have it loaded on your phone)? How can you demonstrate the usefulness of your Yhat-based API? How should you document the use of your data product (separately from how you created it) so that others can rapidly deploy your algorithm?</p>
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>
