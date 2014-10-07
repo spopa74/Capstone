@@ -74,7 +74,11 @@ run1GramModel <- function(data, n, tf1sorted) {
 ## Structure returned is a vector of:
 ## name = index in the 1-gram
 ## vector = vector of 3 possible next words (ordered by probability)
-
+## Parameters:
+## counts2Gram - a term frequency model of the 2-Grams, sorted by frequency
+## indexes1Gram - a vector with 1-Grams and indexes
+## freq1Gram - a vector with indexes and frequencies for 1-Grams
+## n - how many possibilities for the "next word" (1 or 3 in this case)
 create2GramModel <- function(counts2Gram, indexes1Gram, freq1Gram, n) {
   start <- proc.time()
   model <- vector()
@@ -113,9 +117,13 @@ create2GramModel <- function(counts2Gram, indexes1Gram, freq1Gram, n) {
 }
 
 
-## 2-Gram Model
-## relies on the model created by the function above
-run2GramModel <- function(data, n, model, indexes1Gram) {
+## Run the 2-Gram Model, relies on the model created by the function above. 
+## Parameters: 
+## data - vector of words to be tested with
+## n - number of possibilities to check
+## model - the model created above
+## tf2sorted - the 2-Grams, sorted by frequency
+run2GramModel <- function(data, n, model, tf2sorted) {
   start <- proc.time()
   ## data is a vector of words
   ## n is "how many high-freq words to try" (e.g. just the top probability, or the top 3?)
@@ -146,7 +154,7 @@ run2GramModel <- function(data, n, model, indexes1Gram) {
     if (nextWord %in% possibilities)
       hits <- hits + 1
     else
-      if (is.na(indexes1Gram[paste(currentWord, " ", nextWord)]))
+      if (is.na(tf2sorted[paste(currentWord, " ", nextWord)]))
         notin <- notin + 1
       else
         misses <- misses + 1
