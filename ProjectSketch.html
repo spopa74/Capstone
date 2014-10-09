@@ -237,13 +237,36 @@ en_texts &lt;- tm_map(x=en_texts, FUN=removeNumbers)
 tdm &lt;- TermDocumentMatrix(en_texts, control=list(tokenizer=tokenizer))</code></pre>
 <p><strong>Note</strong>: loading in parallel on RWeka/MacOS TermDocumentMatrix crashes with some obscure errors. Suggestion to use option mc.cores=1.<br /><strong>Note</strong>: working on a “bigger” TermDocumentMatrix crashes the JVM behind RWeka, OutOfMemory. Suggestion to use option java.parameters=“-Xmx4g” (heap size up to 4G)<br /><strong>Note</strong>: rJava library has problems if the environment variable JAVA_HOME is set. So unset it before loading rJava or RWeka (Sys.setenv(JAVA_HOME=“”))</p>
 <p>Some stats with regards to time required to analyze the whole corpus (English):</p>
-<pre class="html"><code>N-grams |    User   System    Elapsed  
-------- | ---------------------------  
-1-Gram  |  773.86     1.77     775.69   
-2-Gram  |  916.21     5.79     902.12  
-3-Gram  | 2179.20     8.42    2153.49   
-4-Gram  | 2999.19     8.60    2969.92  
-5-Gram  | 3285.18     8.86    3258.52  </code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">N-grams</th>
+<th align="left">User / System / Elapsed</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">1-Gram</td>
+<td align="left">773.86 / 1.77 / 775.69</td>
+</tr>
+<tr class="even">
+<td align="left">2-Gram</td>
+<td align="left">916.21 / 5.79 / 902.12</td>
+</tr>
+<tr class="odd">
+<td align="left">3-Gram</td>
+<td align="left">2179.20 / 8.42 / 2153.49</td>
+</tr>
+<tr class="even">
+<td align="left">4-Gram</td>
+<td align="left">2999.19 / 8.60 / 2969.92</td>
+</tr>
+<tr class="odd">
+<td align="left">5-Gram</td>
+<td align="left">3285.18 / 8.86 / 3258.52</td>
+</tr>
+</tbody>
+</table>
 <p><em>…Understand frequencies of words and word pairs - build figures and tables to understand variation in the frequencies of words and word pairs in the data.</em></p>
 <ul>
 <li>1-Grams:

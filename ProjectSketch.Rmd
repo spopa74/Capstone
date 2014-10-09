@@ -237,15 +237,15 @@ tdm <- TermDocumentMatrix(en_texts, control=list(tokenizer=tokenizer))
 
 
 Some stats with regards to time required to analyze the whole corpus (English): 
-```html
-N-grams |    User   System    Elapsed  
+
+N-grams |    User / System  / Elapsed  
 ------- | ---------------------------  
-1-Gram  |  773.86     1.77     775.69   
-2-Gram  |  916.21     5.79     902.12  
-3-Gram  | 2179.20     8.42    2153.49   
-4-Gram  | 2999.19     8.60    2969.92  
-5-Gram  | 3285.18     8.86    3258.52  
-```
+1-Gram  |  773.86  /  1.77  /   775.69   
+2-Gram  |  916.21  /  5.79  /   902.12  
+3-Gram  | 2179.20  /  8.42  /  2153.49   
+4-Gram  | 2999.19  /  8.60  /  2969.92  
+5-Gram  | 3285.18  /  8.86  /  3258.52  
+
 
 
 *...Understand frequencies of words and word pairs - build figures and tables to understand variation in the frequencies of words and word pairs in the data.*
