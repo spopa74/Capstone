@@ -40,9 +40,17 @@ findIndexesLoop <- function(v, n = NA) {
   print("Start preprocessing...")
   tab <- table(v)
   ind <- as.integer(names(tab)) 
-
+  
+  print(paste("Length of table: ", length(tab)))
+  
   ## so we can preallocate (much faster)
   for(i in 1:length(tab)) {
+    ## print so we see what's happening
+    if(i %% 100000 == 0) {
+      print(proc.time() - start)
+      print(paste("Index in tab: ", i))
+    }
+    
     indexes[ind[i]][[1]] <- vector(mode = "integer", length = tab[i])
   }
   print("...done preprocessing, preallocating.")
