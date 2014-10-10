@@ -25,129 +25,160 @@ save(tf1sorted, file="5Sorted.tf")
 
 
 ## break the sorted vector into 4 different vectors, save all of them
-## vector 1, full N-gram (NwordIndex.tf files, e.g. 1wordIndex.tf)
-## vector 2, "prior" = N-1-grams (indexes in the N-1 vectors) (NpriorIx.tf files)
-## vector 3, "posterior" = 1-gram (NposteriorIx.tf files)
-## vector 4, frequency of the N-gram (Nfreq.tf files)
+## vector 1, full N-gram (NwordIndex.tf files, e.g. indexesNGramNO)
+## vector 2, "prior" = N-1-grams (indexes in the N-1 vectors) (priorNGramNO files)
+## vector 3, "posterior" = 1-gram (posteriorNGramNO files)
+## vector 4, frequency of the N-gram (freqNGramNO files)
+
+## NO == No Ones (the elements with counts = 1 removed)
 
 ## vectors for 1-Grams (no prior, no posterior)
-wordIndex1Gram <- 1:length(tf1sorted)
-names(wordIndex1Gram) <- names(tf1sorted)
-save(wordIndex1Gram, file="4_models/1wordIndex.tf")
-freq1Gram <- unname(tf1sorted)
-save(freq1Gram, file="4_models/1freq.tf")
+load("3_grams//1noones.tf")
+tf1SortedNO <- sort(tf1noones, decreasing = TRUE)
+remove(tf1noones)
+indexes1GramNO <- 1:length(tf1SortedNO)
+names(indexes1GramNO) <- names(tf1SortedNO)
+save(indexes1GramNO, file="4_models/indexes1GramNO.tf")
+freq1GramNO <- unname(tf1SortedNO)
+save(freq1GramNO, file="4_models/freq1GramNO.tf")
+remove(tf1SortedNO)
+
 
 ## ------------------------ similar for 2-Grams
-len2 <-length(tf2sorted)
-wordIndex2Gram <- 1:len2
-names(wordIndex2Gram) <- names(tf2sorted)
-save(wordIndex2Gram, file="4_models/2wordIndex.tf")
+load("3_grams//2noones.tf")
+tf2SortedNO <- sort(tf2noones, decreasing = TRUE)
+remove(tf2noones)
+len2 <-length(tf2SortedNO)
+indexes2GramNO <- 1:len2
+names(indexes2GramNO) <- names(tf2SortedNO)
+save(indexes2GramNO, file="4_models/indexes2GramNO.tf")
+
 ## find prior, posterior
-allNames2 <- names(tf2sorted)
+allNames2 <- names(tf2SortedNO)
+freq2GramNO <- unname(tf2SortedNO)
+save(freq2GramNO, file="4_models/freq2GramNO.tf")
+remove(tf2SortedNO)
+
 allNamesCollapsed2 <- paste(allNames2, collapse = " ")
 allNamesVector2 <- unlist(strsplit(allNamesCollapsed2, split = " "))
+remove(allNames2)
+remove(allNamesCollapsed2)
 
 prior2 <- allNamesVector2[seq.int(1, len2 * 2, 2)]
 post2 <- allNamesVector2[seq.int(2, len2 * 2, 2)]
-prior2Ix <- wordIndex1Gram[prior2]
-post2Ix <- wordIndex1Gram[post2]
-save(prior2Ix, file="4_models/2priorIx.tf")
-save(post2Ix, file="4_models/2posteriorIx.tf")
+prior2Ix <- indexes1GramNO[prior2]
+post2Ix <- indexes1GramNO[post2]
+save(prior2Ix, file="4_models/prior2GramNO.tf")
+save(post2Ix, file="4_models/posterior2GramNO.tf")
+remove(allNamesVector2)
+remove(prior2)
+remove(post2)
+remove(len2)
 
-tf2sorted <- unname(tf2sorted)
-save(tf2sorted, file="4_models/2freq.tf")
 
+## ------------------------ similar for 3-Grams
+load("3_grams//3noones.tf")
+tf3SortedNO <- sort(tf3noones, decreasing = TRUE)
+remove(tf3noones)
+len3 <-length(tf3SortedNO)
+indexes3GramNO <- 1:len3
+names(indexes3GramNO) <- names(tf3SortedNO)
+save(indexes3GramNO, file="4_models/indexes3GramNO.tf")
 
-## ----------------- similar for 3-Grams
-load("3_grams//3sorted.tf")
-len3 <-length(tf3sorted)
-wordIndex3Gram <- 1:len3
-names(wordIndex3Gram) <- names(tf3sorted)
-save(wordIndex3Gram, file="4_models/3wordIndex.tf")
 ## find prior, posterior
-allNames3 <- names(tf3sorted)
+allNames3 <- names(tf3SortedNO)
+freq3GramNO <- unname(tf3SortedNO)
+save(freq3GramNO, file="4_models/freq3GramNO.tf")
+remove(tf3SortedNO)
+
 allNamesCollapsed3 <- paste(allNames3, collapse = " ")
-remove(allNames3)
 allNamesVector3 <- unlist(strsplit(allNamesCollapsed3, split = " "))
+remove(allNames3)
 remove(allNamesCollapsed3)
 
-## calculate prior, post
 prior3_1 <- allNamesVector3[seq.int(1, len3 * 3, 3)]
 prior3_2 <- allNamesVector3[seq.int(2, len3 * 3, 3)]
 post3 <- allNamesVector3[seq.int(3, len3 * 3, 3)]
+prior3Ix <- indexes2GramNO[paste(prior3_1, prior3_2, sep = " ")]
+post3Ix <- indexes1GramNO[post3]
+save(prior3Ix, file="4_models/prior3GramNO.tf")
+save(post3Ix, file="4_models/posterior3GramNO.tf")
 remove(allNamesVector3)
-
-prior3Ix <- wordIndex2Gram[paste(prior3_1, prior3_2, sep = " ")]
-post3Ix <- wordIndex1Gram[post3]
-prior3Ix <- unname(prior3Ix)
-post3Ix <-unname(post3Ix)
-save(prior3Ix, file="4_models/3priorIx.tf")
-save(post3Ix, file="4_models/3posteriorIx.tf")
-
-tf3sorted <- unname(tf3sorted)
-save(tf3sorted, file="4_models/3freq.tf")
+remove(prior3_1)
+remove(prior3_2)
+remove(post3)
+remove(len3)
 
 
 ## ----------------- similar for 4-Grams
-load("3_grams//4sorted.tf")
-len4 <-length(tf4sorted)
-wordIndex4Gram <- 1:len4
-names(wordIndex4Gram) <- names(tf4sorted)
-save(wordIndex4Gram, file="4_models/4wordIndex.tf")
+load("3_grams//4noones.tf")
+tf4SortedNO <- sort(tf4noones, decreasing = TRUE)
+remove(tf4noones)
+len4 <-length(tf4SortedNO)
+indexes4GramNO <- 1:len4
+names(indexes4GramNO) <- names(tf4SortedNO)
+save(indexes4GramNO, file="4_models/indexes4GramNO.tf")
+
 ## find prior, posterior
-allNames4 <- names(tf4sorted)
+allNames4 <- names(tf4SortedNO)
+freq4GramNO <- unname(tf4SortedNO)
+save(freq4GramNO, file="4_models/freq4GramNO.tf")
+remove(tf4SortedNO)
+
 allNamesCollapsed4 <- paste(allNames4, collapse = " ")
-remove(allNames4)
 allNamesVector4 <- unlist(strsplit(allNamesCollapsed4, split = " "))
+remove(allNames4)
 remove(allNamesCollapsed4)
 
-## calculate prior, post
 prior4_1 <- allNamesVector4[seq.int(1, len4 * 4, 4)]
 prior4_2 <- allNamesVector4[seq.int(2, len4 * 4, 4)]
 prior4_3 <- allNamesVector4[seq.int(3, len4 * 4, 4)]
 post4 <- allNamesVector4[seq.int(4, len4 * 4, 4)]
+prior4Ix <- indexes3GramNO[paste(prior4_1, prior4_2, prior4_3, sep = " ")]
+post4Ix <- indexes1GramNO[post4]
+save(prior4Ix, file="4_models/prior4GramNO.tf")
+save(post4Ix, file="4_models/posterior4GramNO.tf")
 remove(allNamesVector4)
-
-prior4Ix <- wordIndex3Gram[paste(prior4_1, prior4_2, prior4_3, sep = " ")]
-post4Ix <- wordIndex1Gram[post4]
-prior4Ix <- unname(prior4Ix)
-post4Ix <-unname(post4Ix)
-save(prior4Ix, file="4_models/4priorIx.tf")
-save(post4Ix, file="4_models/4posteriorIx.tf")
-
-tf4sorted <- unname(tf4sorted)
-save(tf4sorted, file="4_models/4freq.tf")
-
+remove(prior4_1)
+remove(prior4_2)
+remove(prior4_3)
+remove(post4)
+remove(len4)
 
 
 ## ----------------- similar for 5-Grams
-load("3_grams//5sorted.tf")
-len5 <-length(tf5sorted)
-wordIndex5Gram <- 1:len5
-names(wordIndex5Gram) <- names(tf5sorted)
-save(wordIndex5Gram, file="4_models/5wordIndex.tf")
-tf5sorted <- unname(tf5sorted)
-save(tf5sorted, file="4_models/5freq.tf")
+load("3_grams//5noones.tf")
+tf5SortedNO <- sort(tf5noones, decreasing = TRUE)
+remove(tf5noones)
+len5 <-length(tf5SortedNO)
+indexes5GramNO <- 1:len5
+names(indexes5GramNO) <- names(tf5SortedNO)
+save(indexes5GramNO, file="4_models/indexes5GramNO.tf")
 
 ## find prior, posterior
-allNames5 <- names(wordIndex5Gram)
+allNames5 <- names(tf5SortedNO)
+freq5GramNO <- unname(tf5SortedNO)
+save(freq5GramNO, file="4_models/freq5GramNO.tf")
+remove(tf5SortedNO)
 
 allNamesCollapsed5 <- paste(allNames5, collapse = " ")
-remove(allNames5)
 allNamesVector5 <- unlist(strsplit(allNamesCollapsed5, split = " "))
+remove(allNames5)
 remove(allNamesCollapsed5)
 
-## calculate prior, post
 prior5_1 <- allNamesVector5[seq.int(1, len5 * 5, 5)]
 prior5_2 <- allNamesVector5[seq.int(2, len5 * 5, 5)]
 prior5_3 <- allNamesVector5[seq.int(3, len5 * 5, 5)]
 prior5_4 <- allNamesVector5[seq.int(4, len5 * 5, 5)]
 post5 <- allNamesVector5[seq.int(5, len5 * 5, 5)]
+prior5Ix <- indexes4GramNO[paste(prior5_1, prior5_2, prior5_3, prior5_4, sep = " ")]
+post5Ix <- indexes1GramNO[post5]
+save(prior5Ix, file="4_models/prior5GramNO.tf")
+save(post5Ix, file="4_models/posterior5GramNO.tf")
 remove(allNamesVector5)
-
-prior5Ix <- wordIndex4Gram[paste(prior5_1, prior5_2, prior5_3, prior5_4, sep = " ")]
-post5Ix <- wordIndex1Gram[post5]
-prior5Ix <- unname(prior5Ix)
-post5Ix <-unname(post5Ix)
-save(prior5Ix, file="4_models/5priorIx.tf")
-save(post5Ix, file="4_models/5posteriorIx.tf")
+remove(prior5_1)
+remove(prior5_2)
+remove(prior5_3)
+remove(prior5_4)
+remove(post5)
+remove(len5)

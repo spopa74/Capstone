@@ -19,16 +19,28 @@ loadTestFile <- function (fileName) {
 ## ------------------- Find x highest freq ------------------
 
 ## Small helper function - returns a list of N indexes for repeating elements in a vector
-findIndexes <- function(v, n) {
+findIndexes <- function(v, n = NA) {
   uni <- unique(v)
-  ret <- lapply(uni, FUN = function(x) {head(which(v == x), n)})
+  if(is.na(n))
+    ret <- lapply(uni, FUN = function(x) {which(v == x)})
+  else
+    ret <- lapply(uni, FUN = function(x) {head(which(v == x), n)})
+  
   return(list(uni, ret))
 }
 
-findIndexesLoop <- function(v, n) {
-
+## same version as above, in a loop. Returns a different structure, though. 
+findIndexesLoop <- function(v, n = NA) {
   ## something to return
   indexes <- list()
+  lengths <- list()
+  start <- proc.time()
+  
+  ## some preprocessing - find the freq of the elems in v
+  tbl <- table(v)
+  
+  ## now, in tbl, we have the index <> freq values
+  ## I'll use that to preallocate the vectors later
   
   for(i in 1:length(v)) {
     ## get current element    
@@ -36,19 +48,28 @@ findIndexesLoop <- function(v, n) {
 
     ## just a print to see that the code is running
     if(i %% 100000 == 0) {
+      print(proc.time() - start)
       print(paste("Elem: ", elem, ", index: ", i))
     }
     
     lElem <- indexes[elem]
     
     ## skip after n
-    if(length(lElem[[1]]) == n)
-      next
+    if(!is.na(n))
+      if(length(lElem[[1]]) == n)
+        next
     
-    if (is.null(lElem[[1]]))
-      indexes[elem] <- list(i)
-    else
-      indexes[elem][[1]] <- append(x = indexes[elem][[1]], values = i)
+    if (is.null(lElem[[1]])){
+      indexes[elem][[1]] <- vector(mode = "integer", length = tbl[as.character(elem)][[1]])
+      indexes[elem][[1]][[1]] <- i
+      lengths[elem][[1]] <- 1
+    }
+    else {
+      len <- lengths[elem][[1]]
+      ## len <- length(indexes[elem][[1]])
+      indexes[elem][[1]][[len + 1]] <- i
+      lengths[elem][[1]] <- len + 1
+    }
   }
   
   return(indexes)
@@ -72,6 +93,28 @@ findHighestNFreq <- function(priorIx, postIx, n) {
   highestPosts <- lapply(indexesPres, FUN = function(x) {postIx[indexesPres[x][[1]]]})
   return(list(uniquePres, highestPosts))
 }
+
+## INPUTS: 
+## indexesPrior - the model returned by findIndexesLoop function above
+## postIx - the vectors with indexes to posteriors, ordered decreasingly by freq
+## OUTPUT: 
+## model - list with priors and highest N posteriors, for each unique prior
+findPostFromPriors <- function(indexesPrior, postIx) {
+  ## indexesPrior is a list of lists
+  ## each element index is the index in priors, each corresponding list is the list of indexes where that prior was
+  indexesPost <- list()
+  for(i in 1:length(indexesPrior)) {
+    
+    ## just a print to see that the code is running
+    if(i %% 100000 == 0) {
+      print(paste("index: ", i))
+    }
+    
+    indexesPost[i][[1]] <- postIx[indexesPrior[i][[1]]]
+  }
+  return(indexesPost)
+}
+
 
 
 ## -------------- Simple 1-Gram Model -----------------------
@@ -188,6 +231,12 @@ run2GramModel <- function(data, n, model, tf2sorted) {
   
   return(c("hits" = hits, "misses" = misses, "notin" = notin))
 }
+
+
+
+
+
+
 
 
 ## DO NOT USE! IMPOSSIBLY SLOW
