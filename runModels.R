@@ -37,10 +37,18 @@ findIndexesLoop <- function(v, n = NA) {
   start <- proc.time()
   
   ## some preprocessing - find the freq of the elems in v
-  tbl <- table(v)
+  print("Start preprocessing...")
+  tab <- table(v)
+  ind <- as.integer(names(tab)) 
+
+  ## so we can preallocate (much faster)
+  for(i in 1:length(tab)) {
+    indexes[ind[i]][[1]] <- vector(mode = "integer", length = tab[i])
+  }
+  print("...done preprocessing, preallocating.")
   
-  ## now, in tbl, we have the index <> freq values
-  ## I'll use that to preallocate the vectors later
+
+  ## parse the elements of the given vector, put them in the right places
   
   for(i in 1:length(v)) {
     ## get current element    
@@ -59,8 +67,8 @@ findIndexesLoop <- function(v, n = NA) {
       if(length(lElem[[1]]) == n)
         next
     
-    if (is.null(lElem[[1]])){
-      indexes[elem][[1]] <- vector(mode = "integer", length = tbl[as.character(elem)][[1]])
+    if (lElem[[1]][1] == 0){
+      ##indexes[elem][[1]] <- vector(mode = "integer", length = mat[v[i],1])
       indexes[elem][[1]][[1]] <- i
       lengths[elem][[1]] <- 1
     }
