@@ -157,14 +157,14 @@ The main idea here is to replace what is being perceived as profanity, with some
 library(stringi)
 
 ## list of profanities, reduced here for readability. The actual list used is much longer. 
-profanities <- c("acrotomophilia", "anal", "anilingus", "arsehole")  
+## the list in the actual code does contain the actual profanities, shortened here. 
+profanities <- c("acroto...", "an..", "ana...", "ars...") ## etc  
                  
 ## function, will remove profanities from a line and will return the line with no punctuation, 
 removeProfanities <- function(line) {
   ## leave the # and ' alone
   ## tokens <- strsplit(line, "[~`!@$%^&*\\(\\)\\-_=+,<.>/?\\|\\{} \"]")
   tokens <- AlphabeticTokenizer(line)
-
   newline <- ""
   for (token in unlist(tokens)){
     if (token %in% profanities){
@@ -173,15 +173,9 @@ removeProfanities <- function(line) {
     else 
       newline <- paste(newline, stri_trans_tolower(token), sep=" ")
   }
-    
   return(newline)
 }
-
 ```
-
-* there is some other stuff which could be probably cleaned
-  * HTML tags
-  * Unicode characters. These impose a treatment of ` or ', non-alphabetic characters, which should be probably removed (punctuation). 
 
 
 
@@ -209,7 +203,15 @@ Task 2 - Exploratory analysis
 **Tasks**
 
 * *Exploratory analysis  - perform a thorough exploratory analysis of the data, understanding the distribution of words and relationship between the words in the corpora.*   
-At this point we need a lib to start getting the N-grams out of the corpus. Using tm and RWeka, the code will look like: 
+
+Before starting to create N-Grams, I need to take the corpus and split it in 3 conceptual pieces. A big piece for training, a smaller one for test, a smaller one for cross-training (if needed). 
+
+**DECISIONS**  
+* Use only the English corpus. I'll try to use ALL OF IT    
+* Split the 3 files in 10 pieces each. I'll select randomly 7 pieces from each, for training, 2 pieces for test, 1 for cross-validation (used Unix *split -l* command).  
+* Use a lib to start getting the N-grams out of the corpus (*RWeka* and *tm*)  
+
+Using tm and RWeka, the code will look like: 
 
 ```{r}
 ## Java stuff
@@ -217,22 +219,33 @@ Sys.setenv(JAVA_HOME="")
 options(java.parameters="-Xmx14g")
 ```
 ```{r cache=TRUE, eval=FALSE}
-## create a tokenizer in RWeka
-tokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 1, max = 5))
+## create a tokenizer in RWeka, for this example do only the 5-Grams
+tokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 5, max = 5))
 ## load a corpus from a folder
 en_texts <- VCorpus(DirSource(directory="data/en_US/clean", encoding="UTF-8"), 
                     readerControl=list(language="en"))
 ## clean up text
 en_texts <- tm_map(x=en_texts, FUN=removeNumbers)
-## No need, punctuation already removed - en_texts <- tm_map(x=en_texts, FUN=removePunctuation)
-## No need, all text is lower case - en_texts <- tm_map(x=en_texts, FUN=tolower)
 ## options(mc.cores=1)
 ## create a term document matrix, with the frequencies
 tdm <- TermDocumentMatrix(en_texts, control=list(tokenizer=tokenizer))
+
+## process the TDM
+tdmMatrix <- as.matrix(tdm)
+
+## get the sums over rows, sort the grams decreasingly by frequency
+tf1grams <- rowSums(tdmMatrix)
+tf1sorted <- sort(tf1grams, decreasing = TRUE)
+
+## save the vector, has as element names the N-grams (.tf stands for term frequencies)
+save(tf1grams, file="5Grams.tf")
+save(tf1sorted, file="5Sorted.tf")
+tf1noones <- tf1sorted[which(tf1sorted != 1)]
+save(tf1noones, file="5noones.tf")
 ```
 
 **Note**: loading in parallel on RWeka/MacOS TermDocumentMatrix crashes with some obscure errors. Suggestion to use option mc.cores=1.  
-**Note**: working on a "bigger" TermDocumentMatrix crashes the JVM behind RWeka, OutOfMemory. Suggestion to use option java.parameters="-Xmx4g" (heap size up to 4G)  
+**Note**: working on a "bigger" TermDocumentMatrix crashes the JVM behind RWeka, OutOfMemory. Suggestion to use option java.parameters="-Xmx14g" (heap size up to 14G)  
 **Note**: rJava library has problems if the environment variable JAVA_HOME is set. So unset it before loading rJava or RWeka (Sys.setenv(JAVA_HOME=""))  
 
 
@@ -320,21 +333,76 @@ Task 3 - Modeling
   
   * *Build basic n-gram model - using the exploratory analysis you performed, build a basic n-gram model (http://en.wikipedia.org/wiki/N-gram) for predicting the next word based on the previous 1, 2, or 3 words.* At this point I have all of the 1- to 5-Grams constructed, saved separately as files (some are >6GB when loaded in R, so playing with them becomes a problem). I might need to filter all of the N-Grams, so they contain only the Grams with frequencies > 1 (exception the 1-Grams, I'll use those as dictionary).   
   * *Build a model to handle unseen n-grams - in some cases people will want to type a combination of words that does not appear in the corpora. Build a model to handle cases where a particular n-gram isn't observed.*  I'll use a backoff strategy, if there is no suggestion for the last 4 words (using 5-Grams and associated probabilities), then use last 3, if not, last 2, if not, last 1, and, if still not, use the highest 1-Gram probabilities ("the", "end", etc).   
-  
-*Some tests with the N-gram models.*  
-For these tests, I'll use 2 accuracy measurements.  
-    * First, "estimate next word". Loop through the test corpus, for each word use the model to estimate next word. Use the model to return ONLY the highest probability one. Compare the model given answer with the actual word. Count the hits/misses, get accuracy.   
-    * Second, "estimate next possible 3 words". This is different, in the way that a software keyboard could give the user several options in regards to the next possible word. In my case, I'll use 3 options. With this in mind, the process will be: parse the testing corpus, and for each word use the model to return 3 possibilities. If the actual next word is in those 3, consider it a "hit". Count hits and misses, calculate accuracy.  
-    
-* **1-Gram test, 1 possible word**. The test is done on a test file (not involved in training), length ~4 million words. **Accuracy: ~5%** (basically this model just counts the "the" words in the test vector).  
-* **1-Gram test, 3 possible words**. Same test file, length ~4 million words. **Accuracy: ~10%** (this time counts "the", "to", "and").  
-* **2-Gram test, 1 possible word**. Same test file, this time involve 2-Grams. 
-* **2-Gram test, 3 possible word**. Same test file, this time involve 2-Grams. 
+
+**DECISIONS**  
+There is a serious amount of data, which makes working with the whole set of "high-n"-grams impractical. So, first thing, I'll truncate the number of N-grams to 1 million (keep ALL the 1-grams, then the most frequent 1 million 2-, 3-, 4-, 5-grams).**  
+
+In order to build the N-gram, I'll process the N-grams by breaking them in several different indexes. Each of the N-grams will be saved as intermediary files, as follows:  
+* a file for the "n-gram" to "index" mapping (since the words take most of the memory space, I'll keep them in only one place)  
+* a file for the "n-1 gram", the prior. This has the indexes in the N-1 "n-gram to index" mapping (calculated in a prev step)  
+* a file for the "1-gram" posterior. This has the indexes in the 1-gram "n-gram to index" mapping (calculated in first step)  
+* a file with the calculated probabilities, mapping N-gram to calculated probabilities (sorted decreasingly by probability).  
+
+So, the code underneath does:  
+* load the "term frequency" file, sorted decreasingly in a previous step by frequency  
+* truncate to 1 million  
+* extract the "N-gram to index" vector, save  
+* extract the priors (N-1-Grams), posteriors (1-Grams), save
+* calculate the probabilities for the N-Grams, using the formula   
+  * P(w1w2..wn) = P(wn|w1w2..wn-1)*P(w1w2..wn-1) = ( C(w1w2...wn)/C(w1w2..wn-1) ) * P(w1w2..wn-1)  
+* sort and save the probabilities
 
 
+```{r cache=TRUE, eval=FALSE}
 
+##..... code removed, left only the 5-Grams. 
 
-  
+## load the 5-grams
+load("3_grams//5noones.tf")
+tf5SortedNO <- sort(tf5noones, decreasing = TRUE)
+tf5SortedNO <- head(tf5SortedNO, 1000000)
+len5 <-length(tf5SortedNO)
+indexes5GramNO <- 1:len5
+names(indexes5GramNO) <- names(tf5SortedNO)
+save(indexes5GramNO, file="5_models/indexes5GramNO.tf") ## MAPPING N-GRAM TO INDEX
+
+## find prior, posterior
+allNames5 <- names(tf5SortedNO)
+freq5GramNO <- unname(tf5SortedNO)
+save(freq5GramNO, file="5_models/freq5GramNO.tf")       ## MAPPING INDEX TO COUNTS
+allNamesCollapsed5 <- paste(allNames5, collapse = " ")
+allNamesVector5 <- unlist(strsplit(allNamesCollapsed5, split = " "))
+prior5_1 <- allNamesVector5[seq.int(1, len5 * 5, 5)]
+prior5_2 <- allNamesVector5[seq.int(2, len5 * 5, 5)]
+prior5_3 <- allNamesVector5[seq.int(3, len5 * 5, 5)]
+prior5_4 <- allNamesVector5[seq.int(4, len5 * 5, 5)]
+post5 <- allNamesVector5[seq.int(5, len5 * 5, 5)]
+
+## it's possible that some prior for an N-gram is not in the list of the N-1 grams
+## in that case, use the lowest possible value for the N-1 probability, calculate 
+## in a previous step). 
+prior5 <- paste(prior5_1, prior5_2, prior5_3, prior5_4, sep = " ")
+namesPrior5 <- names(prior5)
+for (i in 1:length(prior5)) 
+  if (! (prior5[i] %in% namesPrior5)) 
+    prior5[i] <- minProbable4Gram
+
+prior5Ix <- indexes4GramNO[prior5]
+post5Ix <- indexes1GramNO[post5]
+save(prior5Ix, file="5_models/prior5GramNO.tf")     ## MAPPING INDEX TO PRIOR
+save(post5Ix, file="5_models/posterior5GramNO.tf")  ## MAPPING INDEX TO POSTERIOR
+
+## calculate probabilities for these, use the N-1 probability
+prob5GramNO <- vector(mode = "integer", length = length(freq5GramNO))
+for(i in 1:length(indexes5GramNO)) 
+  prob5GramNO[i] <- (freq5GramNO[i] / freq4GramNO[prior5Ix[i]]) * prob4GramNO[prior5Ix[i]]
+names(prob5GramNO) <- names(indexes5GramNO)
+prob5GramNO <- sort(prob5GramNO, decreasing = TRUE)
+save(prob5GramNO, file="5_models/prob5GramSimple.tf") ## MAPPING N-GRAM TO PROBABILITY
+minProbable5Gram <- names(tail(prob5GramNO, 1))
+
+```
+
 **Questions**  
   
   * *How can you efficiently store an n-gram model (think Markov Chains)?*  As suggested, a Markov Chain could be employed. Starting with the list of 1-Grams (probabilities of one-word together with the list of one-words), I could start parsing the 2-Grams. For each of the 2-Grams, add a "link" between the words, so the link represents the probability of the respective 2-Gram (and so on for the 3-, 4-, 5-Grams). The "paths" will have to be memorized, so the model works "forward", meaning that given a group of words, the model is quick to calculate the "next probable word". In regards to efficiency, and looking at the size of the problem, several things will have to be taken into consideration:  
@@ -356,6 +424,28 @@ Task 4 - Prediction
 -------------------
 
 *The goal of this exercise is to build and evaluate your first predictive model. You will use the n-gram and backoff models you built in previous tasks to build and evaluate your predictive model. The goal is to make the model efficient and accurate.*   
+
+*Some tests with the N-gram models.*  
+For these tests, I'll use 2 accuracy measurements.  
+    * First, "estimate next word". Loop through the test corpus, for each word use the model to estimate next word. Use the model to return ONLY the highest probability one. Compare the model given answer with the actual word. Count the hits/misses, get accuracy.   
+    * Second, "estimate next possible 3 words". This is different, in the way that a software keyboard could give the user several options in regards to the next possible word. In my case, I'll use 3 options. With this in mind, the process will be: parse the testing corpus, and for each word use the model to return 3 possibilities. If the actual next word is in those 3, consider it a "hit". Count hits and misses, calculate accuracy.  
+    
+**DECISIONS**
+Not going to use perplexity measurements. While in general, would give a somewhat accurate measure of "how probable is a certain sentence" (using 5-Grams in my model), would not measure IF the keyboard would be actually useful. Our interest here is to give the user "good options", not necessarily a "high probability of sentence". It's very possible that a model with a lower perplexity would give NO useful predictions to the user. 
+Otherwise, should be trivial to calculate:  
+* loop through the test text.   
+* for each word calculate the probability of that word in the context (5-Grams if we have 4 previous words, etc). 
+* log the probability, add it and then calculate the mean - this would be the perplexity.   
+    
+So, with the accuracy measurements described above, we arrive to the following results:  
+* **1-Gram test, 1 possible word**. The test is done on a test file (not involved in training), length ~4 million words. **Accuracy: ~5%** (basically this model just counts the "the" words in the test vector).  
+* **1-Gram test, 3 possible words**. Same test file, length ~4 million words. **Accuracy: ~10%** (this time counts "the", "to", "and").  
+* **2-Gram test, 1 possible word**. Same test file, this time involve 2-Grams. 
+* **2-Gram test, 3 possible word**. Same test file, this time involve 2-Grams. 
+
+
+
+
 
 
 **Tasks**  

@@ -19,6 +19,8 @@ loadTestFile <- function (fileName) {
 ## ------------------- Find x highest freq ------------------
 
 ## Small helper function - returns a list of N indexes for repeating elements in a vector
+## FAST TILL ABOUT 200,000 elements, after that the findIndexesLoop underneath is (much)
+## faster. 
 findIndexes <- function(v, n = NA) {
   uni <- unique(v)
   if(is.na(n))
@@ -36,26 +38,6 @@ findIndexesLoop <- function(v, n = NA) {
   lengths <- list()
   start <- proc.time()
   
-  ## some preprocessing - find the freq of the elems in v
-  print("Start preprocessing...")
-  tab <- table(v)
-  ind <- as.integer(names(tab)) 
-  
-  print(paste("Length of table: ", length(tab)))
-  
-  ## so we can preallocate (much faster)
-  for(i in 1:length(tab)) {
-    ## print so we see what's happening
-    if(i %% 100000 == 0) {
-      print(proc.time() - start)
-      print(paste("Index in tab: ", i))
-    }
-    
-    indexes[ind[i]][[1]] <- vector(mode = "integer", length = tab[i])
-  }
-  print("...done preprocessing, preallocating.")
-  
-
   ## parse the elements of the given vector, put them in the right places
   
   for(i in 1:length(v)) {
@@ -75,8 +57,8 @@ findIndexesLoop <- function(v, n = NA) {
       if(length(lElem[[1]]) == n)
         next
     
-    if (lElem[[1]][1] == 0){
-      ##indexes[elem][[1]] <- vector(mode = "integer", length = mat[v[i],1])
+    if (is.null(lElem[[1]])){
+      indexes[elem][[1]] <- vector(mode = "integer")
       indexes[elem][[1]][[1]] <- i
       lengths[elem][[1]] <- 1
     }
@@ -119,10 +101,12 @@ findPostFromPriors <- function(indexesPrior, postIx) {
   ## indexesPrior is a list of lists
   ## each element index is the index in priors, each corresponding list is the list of indexes where that prior was
   indexesPost <- list()
+  start <- proc.time()
   for(i in 1:length(indexesPrior)) {
     
     ## just a print to see that the code is running
     if(i %% 100000 == 0) {
+      print(proc.time() - start)
       print(paste("index: ", i))
     }
     
