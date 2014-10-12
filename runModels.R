@@ -530,6 +530,13 @@ runTrivialBackoff <- function(data, n, model5, model4, model3, model2, model1) {
     wordiMin2 < data[i-2]
     wordiMin3 < data[i-3]
     
+    prev4Gram <- paste(wordMin3, wordMin2, wordMin1, wordi)
+    prev3Gram <- paste(wordMin2, wordMin1, wordi)
+    prev2Gram <- paste(wordMin1, wordi)
+    prev1Gram <- paste(wordi)
+    
+    
+    
     
   }
   

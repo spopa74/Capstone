@@ -1,4 +1,4 @@
-## some helpers around TDM processing
+## script-ish code, for TDM manipulation, and after...
 
 
 ## Java stuff
@@ -24,9 +24,7 @@ save(tf5sorted, file="5Sorted.tf")
 
 
 
-
-
-## NOVEL APPROACH - calculate ALL probabilities, truncate after
+## Calculate ALL probabilities, truncate after (or not at all)
 
 ## 1 GRAMS
 load("3_grams//1sorted.tf") ## the creates a tf1sorted vector

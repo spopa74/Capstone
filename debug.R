@@ -1,3 +1,6 @@
+## all sorts of one-off functions, for tests and so. 
+
+
 ## debug - something is wrong with the 1-grams: 
 ## no "a", "i", and so on...
 
@@ -17,7 +20,10 @@ findWords <- function(v, w) {
 }
 
 
+## tests with Appends - which one is faster. 
+## preallocated vector. 
 
+## append list call
 testFastAppend <- function() {
   start <- proc.time()
   j <- list()
@@ -27,7 +33,7 @@ testFastAppend <- function() {
   print(proc.time() - start)
 }
 
-
+## c() list
 testFastAppend2 <- function() {
   start <- proc.time()
   j <- list()
@@ -37,8 +43,7 @@ testFastAppend2 <- function() {
   print(proc.time() - start)
 }
 
-
-
+## 
 testFastAppend3 <- function() {
   start <- proc.time()
   j <- vector()
@@ -48,7 +53,7 @@ testFastAppend3 <- function() {
   print(proc.time() - start)
 }
 
-
+## append vector
 testFastAppend4 <- function() {
   start <- proc.time()
   j <- vector()
@@ -58,10 +63,12 @@ testFastAppend4 <- function() {
   print(proc.time() - start)
 }
 
+## some funky environment manipulation
 push <- function(l, x) {
   assign(l, append(eval(as.name(l)), x), envir=parent.frame())
 }
 
+## plus test
 l <- list()
 testFastAppend5 <- function(lst) {
   start <- proc.time()
@@ -71,7 +78,7 @@ testFastAppend5 <- function(lst) {
   print(proc.time() - start)
 }
 
-
+## direct access to elements in list
 testFastAppend6 <- function() {
   start <- proc.time()
   j <- list()
@@ -81,7 +88,7 @@ testFastAppend6 <- function() {
   print(proc.time() - start)
 }
 
-
+## preallocate vector, direct addressing after that
 testFastAppend7 <- function() {
   start <- proc.time()
   j <- as.integer(vector(mode = "integer", length = 100000))
