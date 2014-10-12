@@ -493,10 +493,10 @@ save(dt5GramFinal, file=&quot;5_models/dt5GramFinal&quot;)</code></pre>
 <p>I’ll try also combination of models, starting with a trivial back-off. Check for 5-Grams, if found count as hit, if not, check for 4-Grams (4 last words <em>typed</em>), etc. If not found anywhere, is a miss (is a little more complicated than this, but not a lot more).</p>
 <p><strong>Questions</strong></p>
 <ul>
-<li><em>How does the model perform for different choices of the parameters and size of the model?</em><br /></li>
-<li><em>How much does the model slow down for the performance you gain?</em><br /></li>
-<li><em>Does perplexity correlate with the other measures of accuracy?</em><br /></li>
-<li><em>Can you reduce the size of the model (number of parameters) without reducing performance?</em></li>
+<li><em>How does the model perform for different choices of the parameters and size of the model?</em> As presented above in the table, with the different results.<br /></li>
+<li><em>How much does the model slow down for the performance you gain?</em> Most of the processing in the model is based on indexed data.tables (which use keys, I think binary search for finding a string value - the prior). Growing the number of Grams in the model would result in slight growth in time, but multiplied for the N. Could be significant. Another issue here is the size of the model: 400,000 1-Grams, 750,000 2-Grams, 14 million 3-Grams, 40 million 4-Grams, almost 1 million 5-Grams (this was artificially truncated). This size is already into 8GB RAM, which puts stress on the machine. Growing the model even larger would force the machine to swap, which would make it impossibly long.<br /></li>
+<li><em>Does perplexity correlate with the other measures of accuracy?</em> Didn’t calculate perplexity (explained above), but in general I know that it should correlate.<br /></li>
+<li><em>Can you reduce the size of the model (number of parameters) without reducing performance?</em> Will try with the backoff strategy.</li>
 </ul>
 </div>
 <div id="task-5---creative-exploration" class="section level2">
@@ -506,8 +506,8 @@ save(dt5GramFinal, file=&quot;5_models/dt5GramFinal&quot;)</code></pre>
 <p><em>Explore new models and data to improve your predictive model.</em><br /><em>Evaluate your new predictions on both accuracy and efficiency.</em></p>
 <p><strong>Questions</strong></p>
 <ul>
-<li><em>What are some alternative data sets you could consider using?</em><br /></li>
-<li><em>What are ways in which the n-gram model may be inefficient?</em><br /></li>
+<li><em>What are some alternative data sets you could consider using?</em> A strong candidate for new data is the user’s input. Learning from the user and presenting suggestions from own corpus would probably be more meaningful than a “generic” suggestion.<br /></li>
+<li><em>What are ways in which the n-gram model may be inefficient?</em> The model doesn’t capture longer dependecies. Also, will have trouble with dates, numbers, percentages, etc (things which in general are not reducible to N-Grams).<br /></li>
 <li><em>What are the most commonly missed n-grams? Can you think of a reason why they would be missed and fix that?</em><br /></li>
 <li><em>What are some other things that other people have tried to improve their model?</em><br /></li>
 <li><em>Can you estimate how uncertain you are about the words you are predicting?</em></li>
@@ -532,7 +532,7 @@ save(dt5GramFinal, file=&quot;5_models/dt5GramFinal&quot;)</code></pre>
 <li>Measure and draw a conclusion<br /></li>
 </ul></li>
 <li><em>What order makes the most sense to help another person understand what you have done?</em> As above.<br /></li>
-<li><em>How do you balance completeness and efficiency? What are the “need to knows”?</em> As above.</li>
+<li><em>How do you balance completeness and efficiency? What are the “need to knows”?</em> Needs to know: data model and algorithm description.</li>
 </ul>
 </div>
 <div id="task-7---data-product" class="section level2">

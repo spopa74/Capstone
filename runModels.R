@@ -449,7 +449,7 @@ run5GramModel <- function(data, n, model5, model4) {
   
   ## if interested in only 1 possibility, filter the model4
   if (n == 1)
-    model5 <- model5[!duplicated(model4$prior),]
+    model5 <- model5[!duplicated(model5$prior),]
   
   ## index model1 by grams
   setkey(model5, grams)
@@ -505,6 +505,39 @@ run5GramModel <- function(data, n, model5, model4) {
 
 ## compile the above
 cmpRun5GramModel <- cmpfun(run5GramModel)
+
+
+## Trivial backoff. Take all 5-grams, check with the 5-Gram model. 
+## If the prior not there, take the 4-Gram of the current position, 
+## continue to 3,2,1. See the word suggestion, and compare with the 
+## next word. 
+runTrivialBackoff <- function(data, n, model5, model4, model3, model2, model1) {
+  
+  ## just to make sure I can search quickly by prior. 
+  setkey(model5, grams)
+  setkey(model4, grams)
+  setkey(model3, grams)
+  setkey(model2, grams)
+  setkey(model1, grams)
+  
+  ## small cheat. Will start with the 4-th word in the data, so will 
+  ## skip the first 4 comparisons. Considering that the data is 350,000 
+  ## long, skipping 4 shouldn't change drastically the result. 
+  
+  for (i in 4:(length(data) - 1)) {
+    wordi <- data[i]
+    wordiMin1 < data[i-1]
+    wordiMin2 < data[i-2]
+    wordiMin3 < data[i-3]
+    
+    
+  }
+  
+  
+}
+
+
+
 
 
 
