@@ -16,6 +16,7 @@ loadTestFile <- function (fileName) {
 }
 
 
+
 ## ------------------- Find x highest freq ------------------
 
 ## Small helper function - returns a list of N indexes for repeating elements in a vector
@@ -39,7 +40,6 @@ findIndexesLoop <- function(v, n = NA) {
   start <- proc.time()
   
   ## parse the elements of the given vector, put them in the right places
-  
   for(i in 1:length(v)) {
     ## get current element    
     elem <- v[i]
@@ -72,6 +72,58 @@ findIndexesLoop <- function(v, n = NA) {
   
   return(indexes)
 }
+
+
+
+findIndexes <- function(v, n = NA) {
+  uni <- unique(v)
+  if(is.na(n))
+    ret <- lapply(uni, FUN = function(x) {which(v == x)})
+  else
+    ret <- lapply(uni, FUN = function(x) {head(which(v == x), n)})
+  
+  return(list(uni, ret))
+}
+
+## take a data.table sorted by priors, mark the first 3 for each prior. 
+## v is a vector of priors
+## n is how many to keep
+markFirstN <- function(v, n) {
+  start <- proc.time()
+  
+  result <- as.logical(vector(length = length(v)))
+  
+  currentPrior <- v[1]
+  howManyThisPrior <- 0
+  nextLine <- 1
+  for(i in 1:length(v)) {
+
+    ## just a print to see that the code is running
+    if(i %% 100000 == 0) {
+      print(proc.time() - start)
+      print(paste(", index: ", i))
+    }
+    
+    rowPrior <- v[i]
+    
+    if(rowPrior != currentPrior){
+      currentPrior <- rowPrior
+      howManyThisPrior <- 0
+    }
+    
+    if(howManyThisPrior == n){
+      result[i] <- FALSE
+      next
+    } 
+        
+    result[i] <- TRUE
+    howManyThisPrior <- howManyThisPrior + 1
+    nextLine <- nextLine + 1
+    
+  }
+  return(result)
+}
+
 
 
 ## INPUTS: 
@@ -125,7 +177,7 @@ findPostFromPriors <- function(indexesPrior, postIx) {
 ## found at all in the dictionary). 
 ## data - the data to be tested with, a vector of words
 ## n - how many possibilities (1 or 3) to try
-## tf1sorted - the term frequency for 1-grams, ordered by frequency
+## words1Gram - the term frequency for 1-grams, ordered by frequency
 run1GramModel <- function(data, n, words1Gram) {
   start <- proc.time()
   ## data is a vector of words
