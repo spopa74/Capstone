@@ -9,11 +9,11 @@ library(shiny)
 # one of those. 
 
 # 1. prepare the data, get the book
-book <- "http://www.gutenberg.org/cache/epub/46052/pg46052.txt"
-download.file(url=book, destfile="book.txt", method="curl", cacheOK=TRUE)
-lines <- readLines("book.txt")
-print(length(lines))
-# lines <- c("line one", "line two", "gogo line two", "momo two", "momo one", "momo 3", "line momo two three")
+## book <- "http://www.gutenberg.org/cache/epub/46052/pg46052.txt"
+## download.file(url=book, destfile="book.txt", method="curl", cacheOK=TRUE)
+## lines <- readLines("book.txt")
+## print(length(lines))
+lines <- c("line one", "line two", "gogo line two", "momo two", "momo one", "momo 3", "line momo two three")
 
 # ----------------------------------  some initializations
 hashmap <- list()
@@ -84,30 +84,72 @@ getMostProbable <- function(x, n) {
     }
 }
 
+lastInputAction <- c(0,0,0)
+lastOptions <- c()
 
 # -------------------------------------- shiny
 # the reactive part
 shinyServer(
-    function(input, output) {
-        # the hello thingy
-        output$nameecho <- renderText({paste("Hi ", input$name, "!")})
+    function(input, output, clientData, session) {
         
         # the suggestions for the next words
-        output$suggest <- renderUI({
-            inputtext <- input$input
+        output$suggestButtons <- renderUI({
+            inputtext <- input$inputText
             if (inputtext=="") {
                 return()
             }
+            
             # get the text from input, find last word, get the best 3 choices based on that
-            inputwords <- unlist(strsplit(input$input, " "))
+            inputwords <- unlist(strsplit(input$inputText, " "))
             # pick the last word
             inputlastword <- inputwords[length(inputwords)]
             print(inputlastword)
+            # find the best 3 options
             options <- getMostProbable(inputlastword, 3)
-            "selectInput (multi)" = selectInput("dynamic", "",
-                                                choices = options,
-                                                selected = options,
-                                                multiple = TRUE
-            )})
+            # save the options in a temp var
+            ##length(lastOptions) <- 0
+            ##lastOptions <- options
+            # render the buttons with the options
+            choices <- list()
+            if (! is.null(options))
+                for (i in 1:length(options)) {
+                    ## create and add buttons to the list, will return the list in the end
+                    choices[[i]] <- actionButton(inputId = paste("option",i, sep = ""), label = options[i])
+                }
+            # return the list of buttons
+            return(choices)
+        })
+        
+        # You can access the value of the buttons with input$id_of_button, e.g.
+        output$captureOptionClick <- renderPrint({ 
+            
+            print(paste(input$option1, input$option2, input$option3))
+            
+            newOption1 <- input$option1
+            if (! is.null(newOption1)) {
+                if (newOption1 > lastInputAction[1]) {
+                    ## YES! this button was pressed
+                    lastInputAction[1] <- newOption1
+                    return(paste("Option1 pressed", lastOptions[1]))
+                }
+            }
+            newOption2 <- input$option2
+            if (! is.null(newOption2)) {
+                if (newOption2 > lastInputAction[2]) {
+                    ## YES! this button was pressed
+                    lastInputAction[2] <- newOption2
+                    return(paste("Option2 pressed", lastOptions[2]))
+                }
+            }
+            newOption3 <- input$option3
+            if (! is.null(newOption3)) {
+                if (newOption3 > lastInputAction[3]) {
+                    ## YES! this button was pressed
+                    lastInputAction[3] <- newOption3
+                    return(paste("Option3 pressed", lastOptions[3]))
+                }
+            }
+        }
+        )
     }
 )
