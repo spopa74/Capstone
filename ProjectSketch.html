@@ -345,11 +345,13 @@ calculateQuantile &lt;- function(distribution, quantile) {
 <p><strong>Tasks</strong></p>
 <ul>
 <li><em>Build basic n-gram model - using the exploratory analysis you performed, build a basic n-gram model (<a href="http://en.wikipedia.org/wiki/N-gram">http://en.wikipedia.org/wiki/N-gram</a>) for predicting the next word based on the previous 1, 2, or 3 words.</em> At this point I have all of the 1- to 5-Grams constructed, saved separately as files (some are &gt;6GB when loaded in R, so playing with them becomes a problem). I might need to filter all of the N-Grams, so they contain only the Grams with frequencies &gt; 1 (exception the 1-Grams, I’ll use those as dictionary).<br /></li>
-<li><em>Build a model to handle unseen n-grams - in some cases people will want to type a combination of words that does not appear in the corpora. Build a model to handle cases where a particular n-gram isn’t observed.</em> I’ll use a backoff strategy, if there is no suggestion for the last 4 words (using 5-Grams and associated probabilities), then use last 3, if not, last 2, if not, last 1, and, if still not, use the highest 1-Gram probabilities (“the”, “end”, etc).</li>
+<li><em>Build a model to handle unseen n-grams - in some cases people will want to type a combination of words that does not appear in the corpora. Build a model to handle cases where a particular n-gram isn’t observed.</em> I’ll use a simplest backoff strategy, if there is no suggestion for the last 4 words (using 5-Grams and associated probabilities), then use last 3, if not, last 2, if not, last 1, and, if still not, use the highest 1-Gram probabilities (“the”, “end”, etc).</li>
 </ul>
 <p><strong>DECISIONS</strong><br />In order to build the N-gram, I’ll process the N-grams by breaking them in several different indexes. Each of the N-grams will be saved as intermediary files, as follows:<br />* a file for the “n-gram” to “index” mapping (since the words take most of the memory space, I’ll keep them in only one place)<br />* a file for the “n-1 gram”, the prior. This has the indexes in the N-1 “n-gram to index” mapping (calculated in a prev step)<br />* a file for the “1-gram” posterior. This has the indexes in the 1-gram “n-gram to index” mapping (calculated in first step)<br />* a file with the calculated probabilities, mapping N-gram to calculated probabilities (sorted decreasingly by probability).</p>
 <p>So, the code underneath does:<br />* load the “term frequency” file, sorted decreasingly in a previous step by frequency<br />* extract the “N-gram to index” vector, save<br />* extract the priors (N-1-Grams), posteriors (1-Grams), save * calculate the conditional probabilities for the N-Grams | N-1-Grams, using MLE<br /> * P(wn|w1w2..wn-1) = C(w1w2…wn) / C(w1w2..wn-1)<br />* with all above, create a data.table, work on the data.table from here on (easy to order, etc)</p>
-<pre class="r"><code>##..... code removed, left only the 5-Grams. 
+<pre class="r"><code>library(data.table)
+
+##..... code removed, left only the 5-Grams. 
 
 ## load the 5-grams
 load(&quot;3_grams//5noones.tf&quot;)
@@ -370,16 +372,7 @@ prior5_2 &lt;- allNamesVector5[seq.int(2, len5 * 5, 5)]
 prior5_3 &lt;- allNamesVector5[seq.int(3, len5 * 5, 5)]
 prior5_4 &lt;- allNamesVector5[seq.int(4, len5 * 5, 5)]
 post5 &lt;- allNamesVector5[seq.int(5, len5 * 5, 5)]
-
-## it's possible that some prior for an N-gram is not in the list of the N-1 grams
-## in that case, use the lowest possible value for the N-1 probability, calculate 
-## in a previous step). 
 prior5 &lt;- paste(prior5_1, prior5_2, prior5_3, prior5_4, sep = &quot; &quot;)
-namesPrior5 &lt;- names(prior5)
-for (i in 1:length(prior5)) 
-  if (! (prior5[i] %in% namesPrior5)) 
-    prior5[i] &lt;- minProbable4Gram
-
 prior5Ix &lt;- indexes4Gram[prior5]
 post5Ix &lt;- indexes1Gram[post5]
 save(prior5Ix, file=&quot;5_models/prior5Gram.tf&quot;)     ## MAPPING INDEX TO PRIOR
@@ -394,12 +387,28 @@ save(prob5Gram, file=&quot;5_models/prob5GramSimple.tf&quot;) ## MAPPING N-GRAM 
 
 ## put all together in a data.table
 dt5Grams &lt;- data.table(grams = names(indexes5Gram), 
+                       index = indexes5Gram, 
                        frequency = freq5Gram, 
                        prior = prior5Ix, 
                        posterior = post5Ix, 
                        probabilities = prob5Gram)
-save(dt5Grams, file=&quot;5_models/dt5Gram.dt&quot;)</code></pre>
-<p>Quick note on above code. While the sorted probabilities above will not keep the order of the indexes in the initial sort by count vector, the result will be good enough, meaning that they are the same in the higher probability part of the vector.</p>
+## most of the searches and operations will be done on priors
+setkey(dt5Grams, prior)
+save(dt5Grams, file=&quot;5_models/dt5Gram.dt&quot;)
+
+## sort by prior (increasing) and probability (decreasing)
+dt5SortedPriorProb &lt;- dt5Gram[order(prior, -probabilities)]
+save(dt5SortedPriorProb, file=&quot;5_models/dt5SortedPriorProb.dt&quot;)
+
+## keep only 3 posterior choices for each prior, the ones with the higher probability
+dt5Priors &lt;- dt5SortedPriorProb$prior
+dt5Keep &lt;- cmpMarkFirstN(dt5Priors, 3)  ## cmpMarkFirstN is a compiled function
+dt5SortedPriorProb$keep &lt;- dt5Keep
+dt5SortedFirst3 &lt;- dt5SortedPriorProb[keep == TRUE]
+dt5GramFinal &lt;- dt5SortedFirst3 ## this is the structure I'll use for the matching
+dt5GramFinal$frequency &lt;- NULL
+dt5GramFinal$keep &lt;- NULL
+save(dt5GramFinal, file=&quot;5_models/dt5GramFinal&quot;)</code></pre>
 <p><strong>Questions</strong></p>
 <ul>
 <li><em>How can you efficiently store an n-gram model (think Markov Chains)?</em> As suggested, a Markov Chain could be employed. Starting with the list of 1-Grams (probabilities of one-word together with the list of one-words), I could start parsing the 2-Grams. For each of the 2-Grams, add a “link” between the words, so the link represents the probability of the respective 2-Gram (and so on for the 3-, 4-, 5-Grams). The “paths” will have to be memorized, so the model works “forward”, meaning that given a group of words, the model is quick to calculate the “next probable word”. In regards to efficiency, and looking at the size of the problem, several things will have to be taken into consideration:
@@ -422,122 +431,66 @@ save(dt5Grams, file=&quot;5_models/dt5Gram.dt&quot;)</code></pre>
 <div id="task-4---prediction" class="section level2">
 <h2>Task 4 - Prediction</h2>
 <p><em>The goal of this exercise is to build and evaluate your first predictive model. You will use the n-gram and backoff models you built in previous tasks to build and evaluate your predictive model. The goal is to make the model efficient and accurate.</em></p>
-<p>At this point I have structures which represent:<br />* Map of N-grams to indexes<br />* Map of indexes to priors<br />* Map of indexes to posteriors<br />* Map of N-grams to probabilities<br />I’ll use these to start calculating the accuracy. With the above, I can create a new structure for each N-Grams, which is a mapping “prior to best choices for posterior”. Use 2 methods:</p>
-<pre class="r"><code>## function loops through a vector of indexes and creates a list with 
-## a mapping index to position. Used for the list of &quot;priors&quot;, in order 
-## to obtain a list of &quot;which prior is where in the list&quot; (the list is
-## ordered, so should give the high probabilities at the beginning). 
-## INPUTS: 
-## v - vector v
-## n - number (how many choices to return)
-## OUTPUT: a list (which priors) of lists (to which posteriors)
-## NOTE: tried the vectorial lapply, worked, actually slower after 300,000
-## elements (2 times slower than underneath). 
-findIndexesLoop &lt;- function(v, n = NA) {
-  ## indexes to return
-  indexes &lt;- list()
-  lengths &lt;- list()
-  
-  ## parse the elements of the given vector, put them in the right places
-  for(i in 1:length(v)) {
-    ## get current element    
-    elem &lt;- v[i]
-    lElem &lt;- indexes[elem]
-    
-    ## skip after n
-    if(!is.na(n))
-      if(length(lElem[[1]]) == n)
-        next
-    
-    if (is.null(lElem[[1]])){
-      indexes[elem][[1]] &lt;- vector(mode = &quot;integer&quot;)
-      indexes[elem][[1]][[1]] &lt;- i
-      lengths[elem][[1]] &lt;- 1
-    }
-    else {
-      len &lt;- lengths[elem][[1]]
-      indexes[elem][[1]][[len + 1]] &lt;- i
-      lengths[elem][[1]] &lt;- len + 1
-    }
-  }
-  
-  return(indexes)
-}
-
-## INPUTS: 
-## indexesPrior - the model returned by findIndexesLoop function above
-## postIx - the vectors with indexes to posteriors, ordered decreasingly by freq
-## (NOTE: again, the order of freq follows the orders of probabilities for the 
-## most important choices). 
-## OUTPUT: 
-## model - list with priors and highest N posteriors, for each unique prior
-findPostFromPriors &lt;- function(indexesPrior, postIx) {
-  ## indexesPrior is a list of lists
-  ## each element index is the index in priors, each corresponding list is the list of indexes where that prior was
-  indexesPost &lt;- list()
-  for(i in 1:length(indexesPrior))
-    indexesPost[i][[1]] &lt;- postIx[indexesPrior[i][[1]]]
-  return(indexesPost)
-}</code></pre>
+<p>At this point I have structures which represent N-grams with:<br />* indexes<br />* frequencies<br />* priors<br />* posteriors<br />* probabilities<br />I’ll use these to start calculating the accuracy. With the above, I can create a new structure for each N-Grams, which is a mapping “prior to best choices for posterior”. I’ll use the data.tables obtained above.</p>
 <p><strong>DECISIONS</strong><br /><em>Some tests with the N-gram models.</em><br />For these tests, I’ll use 2 accuracy measurements.<br /> * First, “estimate next word”. Loop through the test corpus, for each word use the model to estimate next word. Use the model to return ONLY the highest probability one. Compare the model given answer with the actual word. Count the hits/misses, get accuracy.<br /> * Second, “estimate next possible 3 words”. This is different, in the way that a software keyboard could give the user several options in regards to the next possible word. In my case, I’ll use 3 options. With this in mind, the process will be: parse the testing corpus, and for each word use the model to return 3 possibilities. If the actual next word is in those 3, consider it a “hit”. Count hits and misses, calculate accuracy.</p>
 <p>Not going to use perplexity measurements. While in general, would give a somewhat accurate measure of “how probable is a certain sentence” (using 5-Grams in this model), would not measure IF the keyboard would be actually useful. Our interest here is to give the user “good options”, not necessarily a “high probability of sentence”. It’s very possible that a model with a lower perplexity would give NO useful predictions to the user. Otherwise, should be trivial to calculate:<br />* loop through the test text.<br />* for each word calculate the probability of that word in the context (5-Grams if I have 4 previous words, etc). * log the probability, add it and then calculate the mean - this would be the perplexity.</p>
-<p>So, with the accuracy measurements described above, I arrive to the following results on the test text (not involved in training - about 4 million words):</p>
-<pre><code>Type of test |        Accuracy    </code></pre>
-<table>
-<tbody>
-<tr class="odd">
-<td align="left">1-Gram 1 choice</td>
-<td align="left">~5% (basically this model just counts the “the” words in the test vector)</td>
-</tr>
-<tr class="even">
-<td align="left">1-Gram 3 choices</td>
-<td align="left">~10% (this time counts “the”, “to”, “and”)</td>
-</tr>
-<tr class="odd">
-<td align="left">2-Gram 1 choice</td>
-<td align="left">kjghkjgkj</td>
-</tr>
-<tr class="even">
-<td align="left">2-Gram 3 choices</td>
-<td align="left">hlkhljhkjhkj</td>
-</tr>
-</tbody>
-</table>
+<p><strong>Tasks</strong></p>
+<ul>
+<li><em>Build a predictive model based on the previous data modeling steps - you may combine the models in any way you think is appropriate.</em> The simple models have been created and measured, the results are above. I’ll try a combined model from the different N-Grams.<br /></li>
+<li><p><em>Evaluate the model for efficiency and accuracy - use timing software to evaluate the computational complexity of your model. Evaluate the model accuracy using different metrics like perplexity, accuracy at the first word, second word, and third word.</em> So, with the accuracy measurements described above, I arrive to the following results on the test text (<strong>not involved</strong> in training - about 350,000 words ~ 2MB, taken from a random piece of blogs data):<br />NOTE: these tests are done with a <em>strictly</em> N-gram model, not with a combination of models.</p>
 <table>
 <thead>
 <tr class="header">
-<th align="left">N-grams</th>
-<th align="left">User / System / Elapsed</th>
+<th align="left">Type of test</th>
+<th align="left">Accuracy</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">1-Gram</td>
-<td align="left">773.86 / 1.77 / 775.69</td>
+<td align="left">1-Gram 1 choice</td>
+<td align="left">5.5% (basically this model just counts the “the” words in the test vector)</td>
 </tr>
 <tr class="even">
-<td align="left">2-Gram</td>
-<td align="left">916.21 / 5.79 / 902.12</td>
+<td align="left">1-Gram 3 choices</td>
+<td align="left">8% (this time counts “the”, “to”, “and”)</td>
 </tr>
 <tr class="odd">
-<td align="left">3-Gram</td>
-<td align="left">2179.20 / 8.42 / 2153.49</td>
+<td align="left">2-Gram 1 choice</td>
+<td align="left">15.5%</td>
 </tr>
 <tr class="even">
-<td align="left">4-Gram</td>
-<td align="left">2999.19 / 8.60 / 2969.92</td>
+<td align="left">2-Gram 3 choices</td>
+<td align="left">23% (~1200 priors not in model)</td>
 </tr>
 <tr class="odd">
-<td align="left">5-Gram</td>
-<td align="left">3285.18 / 8.86 / 3258.52</td>
+<td align="left">3-Gram 1 choice</td>
+<td align="left">8% (going down from 2-Grams, ~250000 priors not in model)</td>
+</tr>
+<tr class="even">
+<td align="left">3-Gram 3 choices</td>
+<td align="left">24% (going up from -Grams, ~200000 priors not in model)</td>
+</tr>
+<tr class="odd">
+<td align="left">4-Gram 1 choice</td>
+<td align="left">8%</td>
+</tr>
+<tr class="even">
+<td align="left">4-Gram 3 choices</td>
+<td align="left">16%</td>
+</tr>
+<tr class="odd">
+<td align="left">5-Gram 1 choice</td>
+<td align="left">3%</td>
+</tr>
+<tr class="even">
+<td align="left">5-Gram 3 choices</td>
+<td align="left">4%</td>
 </tr>
 </tbody>
-</table>
-<p><strong>Tasks</strong></p>
-<ul>
-<li><em>Build a predictive model based on the previous data modeling steps - you may combine the models in any way you think is appropriate.</em><br /></li>
-<li><em>Evaluate the model for efficiency and accuracy - use timing software to evaluate the computational complexity of your model. Evaluate the model accuracy using different metrics like perplexity, accuracy at the first word, second word, and third word.</em></li>
+</table></li>
 </ul>
+<p>Obviously, the accuracy is expected to start going down further (for higher N-Grams, the probability of getting an unknown word will go up with the N).</p>
+<p>I’ll try also combination of models, starting with a trivial back-off. Check for 5-Grams, if found count as hit, if not, check for 4-Grams (4 last words <em>typed</em>), etc. If not found anywhere, is a miss (is a little more complicated than this, but not a lot more).</p>
 <p><strong>Questions</strong></p>
 <ul>
 <li><em>How does the model perform for different choices of the parameters and size of the model?</em><br /></li>
@@ -567,22 +520,33 @@ findPostFromPriors &lt;- function(indexesPrior, postIx) {
 <p><em>Create a reproducible report explaining your analysis - pay particular attention to keeping the report succinct and easy to follow. Be sure to tell a story.</em></p>
 <p><strong>Questions</strong></p>
 <ul>
-<li><em>What parts of the data analysis should you report?</em><br /></li>
-<li><em>What order makes the most sense to help another person understand what you have done?</em><br /></li>
-<li><em>How do you balance completeness and efficiency? What are the “need to knows”?</em></li>
+<li><em>What parts of the data analysis should you report?</em>
+<ul>
+<li>Problem statement<br /></li>
+<li>Short introduction into the modeling<br /></li>
+<li>N-Grams analysis<br /></li>
+<li>Creating a simple model<br /></li>
+<li>Measuring accuracy of the model<br /></li>
+<li>Explain improvements<br /></li>
+<li>Create an improved model<br /></li>
+<li>Measure and draw a conclusion<br /></li>
+</ul></li>
+<li><em>What order makes the most sense to help another person understand what you have done?</em> As above.<br /></li>
+<li><em>How do you balance completeness and efficiency? What are the “need to knows”?</em> As above.</li>
 </ul>
 </div>
 <div id="task-7---data-product" class="section level2">
 <h2>Task 7 - Data Product</h2>
-<p><em>The goal of this exercise is to create a product to highlight the prediction algorithm that you have built and to provide an interface that can be accessed by others. You may choose to create either a prediction API through Yhat or a Shiny app.</em></p>
+<p><em>The goal of this exercise is to create a product to highlight the prediction algorithm that you have built and to provide an interface that can be accessed by others. You may choose to create either a prediction API through Yhat or a Shiny app.</em><br />Will create a Shiny app.</p>
 <p><strong>Tasks</strong></p>
 <p><em>Create a data product to show off your prediction algorithm You may create either an API that accepts an n-gram and predicts the next word or a Shiny app that does the same thing.</em></p>
+<p>Pick Shiny, with a simulated input into some application. The application will let the user input text, and will suggest possible next words to the words put in. The user can click on the respective suggestions, and a measure of accuracy (how many times clicked vs. total number of words in text) will be measured.</p>
 <p><strong>Questions</strong></p>
 <ul>
-<li><em>What are the most interesting ways you could show off your algorithm?</em><br /></li>
-<li><em>Are there any data visualizations you think might be helpful (look at the Swiftkey data dashboard if you have it loaded on your phone)?</em><br /></li>
-<li><em>How can you demonstrate the usefulness of your Yhat-based API?</em><br /></li>
-<li><em>How should you document the use of your data product (separately from how you created it) so that others can rapidly deploy your algorithm?</em></li>
+<li><em>What are the most interesting ways you could show off your algorithm?</em> Not sure about the “most” interesting, but a simulated input box with buttons for “next” words should show the</li>
+<li><em>Are there any data visualizations you think might be helpful (look at the Swiftkey data dashboard if you have it loaded on your phone)?</em> A presentation of decisions from the application would be nice to have. This would include the way of choosing the next words, and the probabilities involved in the decision.<br /></li>
+<li><em>How can you demonstrate the usefulness of your Yhat-based API?</em> Probably by letting one connect to it and test words.<br /></li>
+<li><em>How should you document the use of your data product (separately from how you created it) so that others can rapidly deploy your algorithm?</em> Is not only an algorithm, but also includes some data. That data should be offered together with the methods of using it, in order for others to be able to use it.</li>
 </ul>
 </div>
 <div id="references" class="section level2">

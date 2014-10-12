@@ -1,6 +1,7 @@
  ## various functions, run a model over the test data. Measures accuracy (hits/misses)...
 
 library(Matrix)
+library(compiler)
 
 
 ## ----------------- Load the test file ---------------------------
@@ -74,17 +75,6 @@ findIndexesLoop <- function(v, n = NA) {
 }
 
 
-
-findIndexes <- function(v, n = NA) {
-  uni <- unique(v)
-  if(is.na(n))
-    ret <- lapply(uni, FUN = function(x) {which(v == x)})
-  else
-    ret <- lapply(uni, FUN = function(x) {head(which(v == x), n)})
-  
-  return(list(uni, ret))
-}
-
 ## take a data.table sorted by priors, mark the first 3 for each prior. 
 ## v is a vector of priors
 ## n is how many to keep
@@ -124,8 +114,11 @@ markFirstN <- function(v, n) {
   return(result)
 }
 
+## compile above
+cmpMarkFirstN <- cmpfun(markFirstN)
 
 
+## function for finding the high freq lines. Vectorial, fairly slow for big data sets. 
 ## INPUTS: 
 ## priorIx - the vectors with indexes to priors, ordered decreasingly by freq
 ## postIx - the vectors with indexes to posteriors, ordered decreasingly by freq
@@ -144,6 +137,7 @@ findHighestNFreq <- function(priorIx, postIx, n) {
   return(list(uniquePres, highestPosts))
 }
 
+## Maps the set of priors to a set of posteriors. 
 ## INPUTS: 
 ## indexesPrior - the model returned by findIndexesLoop function above
 ## postIx - the vectors with indexes to posteriors, ordered decreasingly by freq
@@ -177,8 +171,11 @@ findPostFromPriors <- function(indexesPrior, postIx) {
 ## found at all in the dictionary). 
 ## data - the data to be tested with, a vector of words
 ## n - how many possibilities (1 or 3) to try
-## words1Gram - the term frequency for 1-grams, ordered by frequency
-run1GramModel <- function(data, n, words1Gram) {
+## model - the data.table for 1-Grams, ordered by probability
+run1GramModel <- function(data, n, model1) {
+  
+  grams <- model1$grams
+  
   start <- proc.time()
   ## data is a vector of words
   ## n is "how many high-freq words to try" (e.g. just the top probability, or the top 3?)
@@ -188,7 +185,7 @@ run1GramModel <- function(data, n, words1Gram) {
   misses <- 0
   notin <- 0   ## words which are not in dictionary
   ## in case of 1-grams, the things to compare are static - the highest probable words
-  possibilities <- head(names(words1Gram), n + 1)
+  possibilities <- head(grams, n + 1)
   
   for(i in 1:len){
     currentWord <- data[i]
@@ -201,7 +198,7 @@ run1GramModel <- function(data, n, words1Gram) {
     if (currentWord %in% possibilities)
       hits <- hits + 1
     else {
-      if (is.na(words1Gram[currentWord]))
+      if (is.na(grams[currentWord]))
         notin <- notin + 1
       else
         misses <- misses + 1
@@ -214,67 +211,84 @@ run1GramModel <- function(data, n, words1Gram) {
   return(c("hits" = hits, "misses" = misses, "notin" = notin))
 }
 
+## compile the above
+cmpRun1GramModel <- cmpfun(run1GramModel)
 
-## -------------- CREATE 2-GRAM model ---------------------
 
-## INPUT: 
-## prior2Ix - vector of indexes of 2Grams priors, sorted decreasingly by frequency
-## post2Ix - vector of indexes of 2-Grams posts, also sorted...
-## OUTPUT: 
-## 
-create2GramModel <- function(prior2Ix, post2Ix, n) {
-  start <- proc.time()
 
-  ## makes use of findHighestFreq function above
-  bigramModel <- findHighestNFreq(prior2Ix, post2Ix, n)
+## Return a 1-Gram
+get2GramPosts <- function(g1Gram, n, model2, model1) {
+  l <- list()
+  index <- -1
+  ## if param is a word, not an index, make it an index
+  if (is.character(g1Gram)) {
+    ## find index first
+    
+  }
   
-  print(proc.time() - start)
-  return(bigramModel)
+  ## maybe didn't find it
+  if (index == -1)
+    return(l)
   
+  dt <- model2[index==g1Gram]
+  
+  return(l)
 }
 
+cmpGet2GramPosts <- cmpfun(get2GramPosts)
 
 
-## Run the 2-Gram Model, relies on the model created by the function above. 
+## Run the 2-Gram Model 
 ## Parameters: 
 ## data - vector of words to be tested with
 ## n - number of possibilities to check
-## model - the model created above
-## tf2sorted - the 2-Grams, sorted by frequency
-run2GramModel <- function(data, n, model, tf2sorted) {
+## model - the data.table with the 2-Grams, prior and posterior, 3 options for each prior
+run2GramModel <- function(data, n, model2, model1) {
   start <- proc.time()
+  
+  ## if interested in only 1 possibility, filter the model2
+  if (n == 1)
+    model2 <- model2[!duplicated(model2$prior),]
+  
+  ## index model1 by grams
+  setkey(model2, grams)
+  setkey(model1, grams)
+  
   ## data is a vector of words
-  ## n is "how many high-freq words to try" (e.g. just the top probability, or the top 3?)
   len <- length(data)
   
   hits <- 0
   misses <- 0
   notin <- 0
   
-  for(i in 1:len) {
-    ## get the current and next words
-    currentWord <- data[i]
-    if (i<len) 
-      nextWord <- data[i+1]
-    
-    ## find the possibilities for the current word
-    possibilities <- model[currentWord]
-    if(n == 1)
-      possibilities <- c(possibilities[1][1],possibilities[1][2]) 
-    
+  for(i in 1:len-1) {
     ## just a print to see that the code is running
-    if(i %% 100000 == 0) {
-      print(paste("Word: ", currentWord, ", index: ", i))
+    if(i %% 100 == 0) {
+      print(proc.time() - start)
+      print(paste("hits: ", hits, ", misses: ", misses, ", notin: ", notin, ", index: ", i))
     }
     
-    ## check to see if the next word is in the vector of possibilities
-    if (nextWord %in% possibilities)
+    ## get the current and next words
+    currentWord <- data[i]
+    nextWord <- data[i+1]
+    
+    ## create a bigram
+    g2Gram <- paste(currentWord, nextWord)
+    
+    ## check if we have it in our 2-Gram model
+    dt <- model2[grams == g2Gram]
+    
+    ## interpret
+    if (length(dt$index) > 0)
       hits <- hits + 1
-    else
-      if (is.na(tf2sorted[paste(currentWord, " ", nextWord)]))
+    else { ## why wasn't found? Prior, or posterior, not in the models?
+      ## find the prior
+      mdt <- model1[grams == currentWord]
+      if (length(mdt$index) == 0)
         notin <- notin + 1
-    else
-      misses <- misses + 1
+      else
+        misses <- misses + 1
+    }
     
   }
   
@@ -284,12 +298,217 @@ run2GramModel <- function(data, n, model, tf2sorted) {
   return(c("hits" = hits, "misses" = misses, "notin" = notin))
 }
 
+## compile the above
+cmpRun2GramModel <- cmpfun(run2GramModel)
+
+
+
+## Run the 3-Gram Model 
+## Parameters: 
+## data - vector of words to be tested with
+## n - number of possibilities to check
+## model3, 2 - the data.table with the 3-, 2-Grams, prior and posterior, 3 options for each prior, etc
+run3GramModel <- function(data, n, model3, model2) {
+  start <- proc.time()
+  
+  ## if interested in only 1 possibility, filter the model3
+  if (n == 1)
+    model3 <- model3[!duplicated(model3$prior),]
+  
+  ## index model1 by grams
+  setkey(model3, grams)
+  setkey(model2, grams)
+  
+  ## data is a vector of words
+  len <- length(data)
+  
+  hits <- 0
+  misses <- 0
+  notin <- 0
+  
+  for(i in 1:(len-2)) {
+    ## just a print to see that the code is running
+    if(i %% 100 == 0) {
+      print(proc.time() - start)
+      print(paste("hits: ", hits, ", misses: ", misses, ", notin: ", notin, ", index: ", i))
+    }
+    
+    ## get the current and next words
+    currentWord <- data[i]
+    nextWord <- data[i+1]
+    nextNextWord <- data[i+2]
+    
+    ## create a trigram
+    g2Gram <- paste(currentWord, nextWord)
+    g3Gram <- paste(g2Gram, nextNextWord)
+    
+    ## check if we have it in our 3-Gram model
+    dt <- model3[grams == g3Gram]
+    
+    ## interpret
+    if (length(dt$index) > 0)
+      hits <- hits + 1
+    else { ## why wasn't found? Prior, or posterior, not in the models?
+      ## find the prior
+      mdt <- model2[grams == g2Gram]
+      if (length(mdt$index) == 0)
+        notin <- notin + 1
+      else
+        misses <- misses + 1
+    }
+    
+  }
+  
+  ## how long it took?
+  print(proc.time() - start)
+  
+  return(c("hits" = hits, "misses" = misses, "notin" = notin))
+}
+
+## compile the above
+cmpRun3GramModel <- cmpfun(run3GramModel)
 
 
 
 
+## Run the 4-Gram Model 
+## Parameters: 
+## data - vector of words to be tested with
+## n - number of possibilities to check
+## model4, 3 - the data.table with the 4-, 3-Grams, prior and posterior, 3 options for each prior, etc
+run4GramModel <- function(data, n, model4, model3) {
+  start <- proc.time()
+  
+  ## if interested in only 1 possibility, filter the model4
+  if (n == 1)
+    model4 <- model4[!duplicated(model4$prior),]
+  
+  ## index model1 by grams
+  setkey(model4, grams)
+  setkey(model3, grams)
+  
+  ## data is a vector of words
+  len <- length(data)
+  
+  hits <- 0
+  misses <- 0
+  notin <- 0
+  
+  for(i in 1:(len-3)) {
+    ## just a print to see that the code is running
+    if(i %% 100 == 0) {
+      print(proc.time() - start)
+      print(paste("hits: ", hits, ", misses: ", misses, ", notin: ", notin, ", index: ", i))
+    }
+    
+    ## get the current and next words
+    currentWord <- data[i]
+    nextWord <- data[i+1]
+    nextNextWord <- data[i+2]
+    nextNextNextWord <- data[i+3]  ## :)
+    
+    ## create a trigram, fourgram
+    g3Gram <- paste(currentWord, nextWord, nextNextWord)
+    g4Gram <- paste(g3Gram, nextNextNextWord)
+    
+    ## check if we have it in our 4-Gram model
+    dt <- model4[grams == g4Gram]
+    
+    ## interpret
+    if (length(dt$index) > 0)
+      hits <- hits + 1
+    else { ## why wasn't found? Prior, or posterior, not in the models?
+      ## find the prior
+      mdt <- model3[grams == g3Gram]
+      if (length(mdt$index) == 0)
+        notin <- notin + 1
+      else
+        misses <- misses + 1
+    }
+    
+  }
+  
+  ## how long it took?
+  print(proc.time() - start)
+  
+  return(c("hits" = hits, "misses" = misses, "notin" = notin, "percentage" = hits / (hits + misses + notin)))
+}
+
+## compile the above
+cmpRun4GramModel <- cmpfun(run4GramModel)
 
 
+
+## Run the 5-Gram Model 
+## Parameters: 
+## data - vector of words to be tested with
+## n - number of possibilities to check
+## model5, 4 - the data.table with the 5-, 4-Grams, prior and posterior, 3 options for each prior, etc
+run5GramModel <- function(data, n, model5, model4) {
+  start <- proc.time()
+  
+  ## if interested in only 1 possibility, filter the model4
+  if (n == 1)
+    model5 <- model5[!duplicated(model4$prior),]
+  
+  ## index model1 by grams
+  setkey(model5, grams)
+  setkey(model4, grams)
+  
+  ## data is a vector of words
+  len <- length(data)
+  
+  hits <- 0
+  misses <- 0
+  notin <- 0
+  
+  for(i in 1:(len-3)) {
+    ## just a print to see that the code is running
+    if(i %% 100 == 0) {
+      print(proc.time() - start)
+      print(paste("hits: ", hits, ", misses: ", misses, ", notin: ", notin, ", index: ", i))
+    }
+    
+    ## get the current and next words
+    currentWord <- data[i]
+    nextWord <- data[i+1]
+    nextNextWord <- data[i+2]
+    nextNextNextWord <- data[i+3]  ## :)
+    nextNextNextNextWord <- data[i+4]  
+    
+    ## create a four, fivegram
+    g4Gram <- paste(currentWord, nextWord, nextNextWord, nextNextNextWord)
+    g5Gram <- paste(g4Gram, nextNextNextNextWord)
+    
+    ## check if we have it in our 4-Gram model
+    dt <- model5[grams == g5Gram]
+    
+    ## interpret
+    if (length(dt$index) > 0)
+      hits <- hits + 1
+    else { ## why wasn't found? Prior, or posterior, not in the models?
+      ## find the prior
+      mdt <- model4[grams == g4Gram]
+      if (length(mdt$index) == 0)
+        notin <- notin + 1
+      else
+        misses <- misses + 1
+    }
+    
+  }
+  
+  ## how long it took?
+  print(proc.time() - start)
+  
+  return(c("hits" = hits, "misses" = misses, "notin" = notin, "percentage" = hits / (hits + misses + notin)))
+}
+
+## compile the above
+cmpRun5GramModel <- cmpfun(run5GramModel)
+
+
+
+## ---------------- various trials, not really used -------------
 
 ## DO NOT USE! IMPOSSIBLY SLOW
 ## Based on the sorted counts of 1- and 2-Grams, create the 

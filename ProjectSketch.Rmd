@@ -403,7 +403,7 @@ save(dt5Grams, file="5_models/dt5Gram.dt")
 dt5SortedPriorProb <- dt5Gram[order(prior, -probabilities)]
 save(dt5SortedPriorProb, file="5_models/dt5SortedPriorProb.dt")
 
-## keep only 3 for each prior, the ones with the higher probability
+## keep only 3 posterior choices for each prior, the ones with the higher probability
 dt5Priors <- dt5SortedPriorProb$prior
 dt5Keep <- cmpMarkFirstN(dt5Priors, 3)  ## cmpMarkFirstN is a compiled function
 dt5SortedPriorProb$keep <- dt5Keep
@@ -464,31 +464,32 @@ Otherwise, should be trivial to calculate:
 * for each word calculate the probability of that word in the context (5-Grams if I have 4 previous words, etc). 
 * log the probability, add it and then calculate the mean - this would be the perplexity.   
     
-So, with the accuracy measurements described above, I arrive to the following results on the test text (not involved in training - about 4 million words):  
-  
-
-    Type of test | Accuracy    
------------------|----------------------------------------------------------------------------------
-1-Gram 1  choice | 5%  (basically this model just counts the "the" words in the test vector)    
-1-Gram 3 choices | 10%                                 (this time counts "the", "to", "and")    
-2-Gram 1  choice | kjghkjgkj     
-2-Gram 3 choices | hlkhljhkjhkj   
-
-
-
-
-N-grams |    User / System  / Elapsed  
-------- | ---------------------------  
-1-Gram  |  773.86  /  1.77  /   775.69   
-2-Gram  |  916.21  /  5.79  /   902.12  
-3-Gram  | 2179.20  /  8.42  /  2153.49   
-4-Gram  | 2999.19  /  8.60  /  2969.92  
-5-Gram  | 3285.18  /  8.86  /  3258.52  
 
 **Tasks**  
 
-* *Build a predictive model based on the previous data modeling steps - you may combine the models in any way you think is appropriate.*  
-* *Evaluate the model for efficiency and accuracy - use timing software to evaluate the computational complexity of your model. Evaluate the model accuracy using different metrics like perplexity, accuracy at the first word, second word, and third word.*  
+* *Build a predictive model based on the previous data modeling steps - you may combine the models in any way you think is appropriate.*  The simple models have been created and measured, the results are above. I'll try a combined model from the different N-Grams.  
+* *Evaluate the model for efficiency and accuracy - use timing software to evaluate the computational complexity of your model. Evaluate the model accuracy using different metrics like perplexity, accuracy at the first word, second word, and third word.*  So, with the accuracy measurements described above, I arrive to the following results on the test text (**not involved** in training - about 350,000 words ~ 2MB, taken from a random piece of blogs data):  
+NOTE: these tests are done with a *strictly* N-gram model, not with a combination of models.  
+
+    Type of test | Accuracy    
+-----------------|----------------------------------------------------------------------------------
+1-Gram 1  choice | 5.5%     (basically this model just counts the "the" words in the test vector)    
+1-Gram 3 choices | 8%       (this time counts "the", "to", "and")    
+2-Gram 1  choice | 15.5%     
+2-Gram 3 choices | 23%      (~1200 priors not in model)    
+3-Gram 1  choice | 8%       (going down from 2-Grams, ~250000 priors not in model)        
+3-Gram 3 choices | 24%      (going up from -Grams, ~200000 priors not in model)       
+4-Gram 1  choice | 8%       
+4-Gram 3 choices | 16%          
+5-Gram 1  choice | 3%      
+5-Gram 3 choices | 4%          
+
+Obviously, the accuracy is expected to start going down further (for higher N-Grams, the probability of getting an unknown word will go up with the N). 
+
+
+
+I'll try also combination of models, starting with a trivial back-off. Check for 5-Grams, if found count as hit, if not, check for 4-Grams (4 last words *typed*), etc. If not found anywhere, is a miss (is a little more complicated than this, but not a lot more).   
+
 
 
 **Questions**  
@@ -532,8 +533,16 @@ Task 6 - Reproducible documentation of results
 **Questions**  
 
 * *What parts of the data analysis should you report?*    
-* *What order makes the most sense to help another person understand what you have done?*  
-* *How do you balance completeness and efficiency? What are the "need to knows"?*  
+    * Problem statement  
+    * Short introduction into the modeling  
+    * N-Grams analysis  
+    * Creating a simple model  
+    * Measuring accuracy of the model  
+    * Explain improvements  
+    * Create an improved model  
+    * Measure and draw a conclusion  
+* *What order makes the most sense to help another person understand what you have done?*  As above.  
+* *How do you balance completeness and efficiency? What are the "need to knows"?*  As above.  
 
 
 
@@ -541,17 +550,20 @@ Task 7 - Data Product
 ---------------------
 
 *The goal of this exercise is to create a product to highlight the prediction algorithm that you have built and to provide an interface that can be accessed by others. You may choose to create either a prediction API through Yhat or a Shiny app.*  
+Will create a Shiny app. 
 
 **Tasks**  
 
 *Create a data product to show off your prediction algorithm You may create either an API that accepts an n-gram and predicts the next word or a Shiny app that does the same thing.*  
 
+Pick Shiny, with a simulated input into some application. The application will let the user input text, and will suggest possible next words to the words put in. The user can click on the respective suggestions, and a measure of accuracy (how many times clicked vs. total number of words in text) will be measured.  
+
 **Questions**  
 
-* *What are the most interesting ways you could show off your algorithm?*  
-* *Are there any data visualizations you think might be helpful (look at the Swiftkey data dashboard if you have it loaded on your phone)?*  
-* *How can you demonstrate the usefulness of your Yhat-based API?*   
-* *How should you document the use of your data product (separately from how you created it) so that others can rapidly deploy your algorithm?*  
+* *What are the most interesting ways you could show off your algorithm?*  Not sure about the "most" interesting, but a simulated input box with buttons for "next" words should show the 
+* *Are there any data visualizations you think might be helpful (look at the Swiftkey data dashboard if you have it loaded on your phone)?* A presentation of decisions from the application would be nice to have. This would include the way of choosing the next words, and the probabilities involved in the decision.     
+* *How can you demonstrate the usefulness of your Yhat-based API?* Probably by letting one connect to it and test words.     
+* *How should you document the use of your data product (separately from how you created it) so that others can rapidly deploy your algorithm?* Is not only an algorithm, but also includes some data. That data should be offered together with the methods of using it, in order for others to be able to use it.    
 
 
 
