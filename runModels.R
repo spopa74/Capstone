@@ -595,13 +595,6 @@ runTrivialBackoff <- function(data, n, model5, model4, model3, model2, model1) {
     
   }
   
-  ## reorder models
-  model1 <- model1[order(-probabilities)]
-  model2 <- model2[order(prior, -probabilities)]
-  model3 <- model3[order(prior, -probabilities)]
-  model4 <- model4[order(prior, -probabilities)]
-  model5 <- model5[order(prior, -probabilities)]
-  
   ## how long it took?
   print(proc.time() - start)
   
@@ -610,6 +603,13 @@ runTrivialBackoff <- function(data, n, model5, model4, model3, model2, model1) {
 
 ## compile it
 cmpRunTrivialBackoff <- cmpfun(runTrivialBackoff)
+
+
+## ----------------- MAIN FUNCTION ------------------------------
+
+propose3Options <- function(text, )
+
+
 
 
 

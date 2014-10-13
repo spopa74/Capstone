@@ -71,7 +71,7 @@ shinyServer(func = function(input, output, clientData, session) {
             if (is.null(currentOption) || length(currentOption) == 0) return
             
             ## get the choices selected
-            if (! is.null(currentOption) && (nchar(currentOption) == 1) && (currentOption %in% c("d", "t"))) {
+            if (! is.null(currentOption) && (nchar(currentOption) == 1) && (currentOption %in% c("d", "t", "s"))) {
                     newText <- paste(lastText, "'", currentOption, sep = "")
                     lastText <<- newText
                     updateTextInput(session = session, inputId = "inputText", value = newText)

@@ -476,10 +476,10 @@ NOTE: these tests are done with a *strictly* N-gram model, not with a combinatio
 2-Gram 3 choices | 23%      (~1200 priors not in model)    
 3-Gram 1  choice | 8%       (going down from 2-Grams, ~250000 priors not in model)        
 3-Gram 3 choices | 24%      (going up from -Grams, ~200000 priors not in model)       
-4-Gram 1  choice | 8%       
-4-Gram 3 choices | 16%          
-5-Gram 1  choice | 2.5%      
-5-Gram 3 choices | 4%          
+4-Gram 1  choice | 8%       (same as with only 3)  
+4-Gram 3 choices | 16%      (worse than with only 3)    
+5-Gram 1  choice | 2.5%     (a lot worse)  
+5-Gram 3 choices | 4%       (a lot worse)   
 
 Obviously, the accuracy is expected to start going down further (for higher N-Grams, the probability of getting an unknown word will go up with the N). 
 
@@ -495,10 +495,28 @@ Trivial backoff 3  choice | 37% (for some reason I expected better)
 
 **Questions**  
 
-* *How does the model perform for different choices of the parameters and size of the model?* As presented above in the table, with the different results.     
+* *How does the model perform for different choices of the parameters and size of the model?* As presented above in the table, with the different results. I add a little lower a test with the trimmed N-Grams.      
 * *How much does the model slow down for the performance you gain?* Most of the processing in the model is based on indexed data.tables (which use keys, I think binary search for finding a string value - the prior). Growing the number of Grams in the model would result in slight growth in time, but multiplied for the N. Could be significant. Another issue here is the size of the model: 400,000 1-Grams, 750,000 2-Grams, 14 million 3-Grams, 40 million 4-Grams, almost 1 million 5-Grams (this was artificially truncated). This size is already into 8GB RAM, which puts stress on the machine. Growing the model even larger would force the machine to swap, which would make the processing significantly longer.      
 * *Does perplexity correlate with the other measures of accuracy?* Didn't calculate perplexity (explained above), but in general I know that it should correlate.  
 * *Can you reduce the size of the model (number of parameters) without reducing performance?* Probably yes, by trimming the N-grams. I'll use a strategy of removing the 1 time found 1-Grams, then going through the 2- to 5-Grams and eliminating the ones which correspond to Grams eliminated earlier (go through the 2-Grams and eliminate the ones with the prior or posterior in the eliminated 1-Grams, then go through the 3-Grams and eliminate.. etc).      
+With the trimmed data, I get the reduction in sizes: 
+
+  N-Gram  | Size of data    
+----------|--------------------------------------------------------------------------------
+  1-Grams | ~200,000 (instead of 400,000)    
+  2-Grams | ~225,000 (instead of )    
+  3-Grams | ~2 million (instead of 35 million)    
+  4-Grams | ~2.5 million (instead of 40 million)    
+  5-Grams | <2 million (instead of 10 mill)    
+
+...and the accuracies measurements. 
+
+             Type of test | Accuracy    
+--------------------------|--------------------------------------------------------------------------------
+Trivial backoff 1  choice | 24.5% (slightly worse than above)    
+Trivial backoff 3  choice | 35% (slightly worse as well)   
+
+So the drastic reduction in dimension didn't result in a drastic reduction in accuracy. 
 
 
 

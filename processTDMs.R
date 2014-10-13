@@ -226,15 +226,15 @@ remove(len4)
 
 ## 5 GRAMS
 load("3_grams//5sorted.tf") ## the creates a tf5sorted vector
-tf5sorted <- head(tf5sorted, 1000000) ## truncate, too many
+## tf5sorted <- head(tf5sorted, 1000000) ## truncate, too many
 len5 <- length(tf5sorted)
 indexes5Gram <- 1:len5
 names(indexes5Gram) <- names(tf5sorted)
-save(indexes5Gram, file="5_models/indexes5Gram.tf")
+save(indexes5Gram, file="5_models/indexes5GramNO.tf")
 
 ## save frequencies
 freq5Gram <- unname(tf5sorted)
-save(freq5Gram, file="5_models/freq5Gram.tf")
+save(freq5Gram, file="5_models/freq5GramNO.tf")
 allNames5 <- names(tf5sorted)
 
 ## get the post, prior
@@ -245,10 +245,11 @@ prior5_2 <- allNamesVector5[seq.int(2, len5 * 5, 5)]
 prior5_3 <- allNamesVector5[seq.int(3, len5 * 5, 5)]
 prior5_4 <- allNamesVector5[seq.int(4, len5 * 5, 5)]
 post5 <- allNamesVector5[seq.int(5, len5 * 5, 5)]
+
 prior5Ix <- indexes4Gram[paste(prior5_1, prior5_2, prior5_3, prior5_4, sep=" ")]
 post5Ix <- indexes1Gram[post5]
-save(prior5Ix, file="5_models/prior5Gram.tf")
-save(post5Ix, file="5_models/posterior5Gram.tf")
+save(prior5Ix, file="5_models/prior5GramNO.tf")
+save(post5Ix, file="5_models/posterior5GramNO.tf")
 
 ## calculate probabilities
 start <- proc.time()
@@ -261,7 +262,7 @@ for(i in 1:length(freq5Gram)){
   prob5Gram[i] <- (freq5Gram[i] / freq4Gram[prior5Ix[i]])
 }
 print(proc.time() - start)
-save(prob5Gram, file="5_models/prob5Gram.tf")
+save(prob5Gram, file="5_models/prob5GramNO.tf")
 
 ## put all together in a data.table
 dt5Gram <- data.table(grams = names(indexes5Gram), 
@@ -271,7 +272,7 @@ dt5Gram <- data.table(grams = names(indexes5Gram),
                        posterior = post5Ix, 
                        probabilities = prob5Gram)
 ## most of the searches and operations will be done on priors
-save(dt5Gram, file="5_models/dt5Gram.dt")
+save(dt5Gram, file="5_models/dt5GramNO1.dt")
 
 
 
@@ -286,3 +287,74 @@ remove(prior5_3)
 remove(prior5_4)
 remove(post5)
 remove(len5)
+
+
+
+
+
+
+## prepare the sorted subsets of high prob prior vs. 3 choices
+
+
+dt1GramFinalTriv3Choices <- dt1GramFinalTriv3Choices[order(-probabilities)]
+dt2GramFinalTriv3Choices <- dt2GramFinalTriv3Choices[order(prior, -probabilities)]
+dt3GramFinalTriv3Choices <- dt3GramFinalTriv3Choices[order(prior, -probabilities)]
+dt4GramFinalTriv3Choices <- dt4GramFinalTriv3Choices[order(prior, -probabilities)]
+dt5GramFinalTriv3Choices <- dt5GramFinalTriv3Choices[order(prior, -probabilities)]
+
+## keep only 3 posterior choices for each prior, the ones with the higher probability
+dt1GramFinalTriv3Choices <- head(dt1GramNO, 4)
+save(dt1GramFinalTriv3Choices, file="6_models/dt1GramFinalTriv3Choices.dt")
+
+## 2-Grams
+dt2Priors <- dt2GramNO$prior
+dt2Keep <- cmpMarkFirstN(dt2Priors, 3)  ## cmpMarkFirstN is a compiled function
+dt2GramNO$keep <- dt2Keep
+dt2GramFinalTriv3Choices <- dt2GramNO[keep == TRUE]
+dt2GramFinalTriv3Choices$keep <- NULL
+save(dt2GramFinalTriv3Choices, file="6_models/dt2GramFinalTriv3Choices.dt")
+remove(dt2Keep)
+remove(dt2Priors)
+head(dt2GramFinalTriv3Choices)
+tail(dt2GramFinalTriv3Choices)
+
+
+## 3-Grams
+dt3Priors <- dt3GramNO$prior
+dt3Keep <- cmpMarkFirstN(dt3Priors, 3)  ## cmpMarkFirstN is a compiled function
+dt3GramNO$keep <- dt3Keep
+dt3GramFinalTriv3Choices <- dt3GramNO[keep == TRUE]
+dt3GramFinalTriv3Choices$keep <- NULL
+save(dt3GramFinalTriv3Choices, file="6_models/dt3GramFinalTriv3Choices.dt")
+remove(dt3Keep)
+remove(dt3Priors)
+head(dt3GramFinalTriv3Choices)
+tail(dt3GramFinalTriv3Choices)
+
+
+## 4-Grams
+dt4Priors <- dt4GramNO$prior
+dt4Keep <- cmpMarkFirstN(dt4Priors, 3)  ## cmpMarkFirstN is a compiled function
+dt4GramNO$keep <- dt4Keep
+dt4GramFinalTriv3Choices <- dt4GramNO[keep == TRUE]
+dt4GramFinalTriv3Choices$keep <- NULL
+save(dt4GramFinalTriv3Choices, file="6_models/dt4GramFinalTriv3Choices.dt")
+remove(dt4Keep)
+remove(dt4Priors)
+head(dt4GramFinalTriv3Choices)
+tail(dt4GramFinalTriv3Choices)
+
+
+## 5-Grams
+dt5Priors <- dt5GramNO$prior
+dt5Keep <- cmpMarkFirstN(dt5Priors, 3)  ## cmpMarkFirstN is a compiled function
+dt5GramNO$keep <- dt5Keep
+dt5GramFinalTriv3Choices <- dt5GramNO[keep == TRUE]
+dt5GramFinalTriv3Choices$keep <- NULL
+save(dt5GramFinalTriv3Choices, file="6_models/dt5GramFinalTriv3Choices.dt")
+remove(dt5Keep)
+remove(dt5Priors)
+head(dt5GramFinalTriv3Choices)
+tail(dt5GramFinalTriv3Choices)
+
+
