@@ -2,22 +2,16 @@ library(shiny)
 shinyUI(fluidPage(
     responsive = TRUE,
     
-    titlePanel("Predictive keyboard"),
+    titlePanel(windowTitle = "Predictive keyboard", title = "Predictive Keyboard"),
     
     sidebarLayout(position = "left",
                   sidebarPanel("",
                             helpText("Input any text you want in this text box"),
-                            ## tagList(
-                            ##    tags$textarea(id="input", rows=10, cols=20, "")
-                            ##),
-                            textInput(inputId = "inputText", label = "", value = ""),
-                            helpText("Suggestions"),
-                            uiOutput(outputId = "suggestButtons"),
-                            br(),
-                            br(),
-                            helpText("Resulting text"), 
-                            textOutput(outputId = "resultText")
-                            
+                            tagList(
+                                tags$textarea(id="inputText", rows=10, cols=20, "")
+                            ),
+                            radioButtons(inputId = "options", label = "Suggestions for next word", choices = c("", "", "")), 
+                            actionButton(inputId = "addChoice", label = "Add choice")
                   ), 
                   mainPanel(
                             helpText("This is model of a predictive keyboard. As the user starts writing ",
@@ -27,8 +21,17 @@ shinyUI(fluidPage(
                                      "choice. The system will also try to track the accuracy of the predictor ", 
                                      "by counting the number of words and how many times the user does choose ", 
                                      "one of the presented options. English please..."),
-                            br(),           
-                            textOutput(outputId = "captureOptionClick")
+                            br(),
+                            textOutput(outputId = "captureWriting"), 
+                            textOutput(outputId = "captureChangeOption"), 
+                            textOutput(outputId = "captureAddChoice"), 
+                            
+                            br(),
+                            br(),
+                            br(),
+                            em("Capstone project, Data Science Specialization at Coursera"), 
+                            br(),
+                            em("Sebastian Popa, oct. 2014")
                   )
                  )
             )
