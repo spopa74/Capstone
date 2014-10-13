@@ -513,6 +513,16 @@ cmpRun5GramModel <- cmpfun(run5GramModel)
 ## next word. 
 runTrivialBackoff <- function(data, n, model5, model4, model3, model2, model1) {
   
+  start <- proc.time()
+  
+  ## keep only n possibilities for a next word. 
+  model1N <- head(model1, n) ## different, no priors or posteriors
+  if (n == 1) {
+    model2 <- model2[!duplicated(model2$prior),]
+    model3 <- model3[!duplicated(model3$prior),]
+    model4 <- model4[!duplicated(model4$prior),]
+    model5 <- model5[!duplicated(model5$prior),]
+  }
   ## just to make sure I can search quickly by prior. 
   setkey(model5, grams)
   setkey(model4, grams)
@@ -520,30 +530,86 @@ runTrivialBackoff <- function(data, n, model5, model4, model3, model2, model1) {
   setkey(model2, grams)
   setkey(model1, grams)
   
-  ## small cheat. Will start with the 4-th word in the data, so will 
+  hits <- 0
+  misses <- 0
+  notin <- 0
+  
+  ## small cheat. Will start with the 5-th word in the data, so will 
   ## skip the first 4 comparisons. Considering that the data is 350,000 
   ## long, skipping 4 shouldn't change drastically the result. 
-  
-  for (i in 4:(length(data) - 1)) {
+  for (i in 5:(length(data))) {
+    
+    ## just a print to see that the code is running
+    if(i %% 100 == 0) {
+      print(proc.time() - start)
+      print(paste("hits: ", hits, ", misses: ", misses, ", notin: ", notin, ", index: ", i))
+    }
+    
     wordi <- data[i]
-    wordiMin1 < data[i-1]
-    wordiMin2 < data[i-2]
-    wordiMin3 < data[i-3]
+    wordMin1 <- data[i-1]
+    wordMin2 <- data[i-2]
+    wordMin3 <- data[i-3]
+    wordMin4 <- data[i-4]
     
-    prev4Gram <- paste(wordMin3, wordMin2, wordMin1, wordi)
-    prev3Gram <- paste(wordMin2, wordMin1, wordi)
-    prev2Gram <- paste(wordMin1, wordi)
-    prev1Gram <- paste(wordi)
+    current5Gram <- paste(wordMin4, wordMin3, wordMin2, wordMin1, wordi)
+    current4Gram <- paste(wordMin3, wordMin2, wordMin1, wordi)
+    current3Gram <- paste(wordMin2, wordMin1, wordi)
+    current2Gram <- paste(wordMin1, wordi)
     
-    
-    
+    ## check if we have it in our 5-Gram model
+    dt <- model5[grams == current5Gram]
+    if (length(dt$index) > 0)
+      hits <- hits + 1
+    else {
+      ## check if we have it in our 4-Gram model
+      dt <- model4[grams == current4Gram]
+      if (length(dt$index) > 0)
+        hits <- hits + 1
+      else {
+        ## check if we have it in our 3-Gram model
+        dt <- model3[grams == current3Gram]
+        if (length(dt$index) > 0)
+          hits <- hits + 1
+        else {
+          ## check if we have it in our 2-Gram model
+          dt <- model2[grams == current2Gram]
+          if (length(dt$index) > 0)
+            hits <- hits + 1
+          else {
+            ## check if we have it in our 1-Gram model
+            dt <- model1N[grams == wordi]
+            if (length(dt$index) > 0)
+              hits <- hits + 1
+            else {
+              ## is it in the dictionary? 
+              dt <- model1[grams == wordi]
+              if (length(dt$index) == 0)
+                notin <- notin + 1
+              else
+                misses <- misses + 1
+            }
+          }
+        }
+      }
+    }
     
   }
   
+  ## reorder models
+  model1 <- model1[order(-probabilities)]
+  model2 <- model2[order(prior, -probabilities)]
+  model3 <- model3[order(prior, -probabilities)]
+  model4 <- model4[order(prior, -probabilities)]
+  model5 <- model5[order(prior, -probabilities)]
   
+  ## how long it took?
+  print(proc.time() - start)
+  
+  return(c("hits" = hits, "misses" = misses, "notin" = notin, "percentage" = hits / (hits + misses + notin))) 
 }
 
-
+## compile it
+cmpRunTrivialBackoff <- cmpfun(runTrivialBackoff)
 
 
 

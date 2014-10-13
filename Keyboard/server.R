@@ -28,12 +28,12 @@ shinyServer(func = function(input, output, clientData, session) {
         
         
         ## the suggestions for the next words
-        output$captureWriting <- renderUI({
+        output$captureWriting <- renderText({
             inputText <- input$inputText
             
             ## return if nothing in the box
-            if (inputText=="") return()
-            if (inputText == lastText) return()
+            if (inputText=="") return("Input text rendered...")
+            if (inputText == lastText) return("Input text rendered...")
 
             ## save in variable
             lastText <<- inputText
@@ -49,19 +49,19 @@ shinyServer(func = function(input, output, clientData, session) {
                 currentOption <<- currentOptions[1]
             ## update the checkboxes
             updateRadioButtons(session, inputId = "options", choices = currentOptions, selected = currentOption)
-            ""
+            "Input text rendered..."
         })
         
         
         ## listen for clicking in the radio widget
-        output$captureChangeOption <- renderUI({
+        output$captureChangeOption <- renderText({
             currentOption <<- input$options
-            ""
+            "Radiobuttons rendered..."
         })
         
         
         ## you can access the value of the buttons with input$id_of_button, e.g.
-        output$captureAddChoice <- renderUI({ 
+        output$captureAddChoice <- renderText({ 
             
             ## make this code depend on the button click
             buttonClicked <- input$addChoice
@@ -88,7 +88,7 @@ shinyServer(func = function(input, output, clientData, session) {
                     updateTextInput(session = session, inputId = "inputText", value = newText)
                 }
             }
-            ""
+            "Button rendered..."
         })
     }
 )

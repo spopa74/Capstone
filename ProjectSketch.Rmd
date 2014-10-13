@@ -486,16 +486,19 @@ Obviously, the accuracy is expected to start going down further (for higher N-Gr
 I'll try also combination of models, starting with a trivial back-off. Check for 5-Grams, if found count as hit, if not, check for 4-Grams (4 last words *typed*), etc. If not found anywhere, is a miss (is a little more complicated than this, but not a lot more).   
 
 
-
+             Type of test | Accuracy    
+--------------------------|--------------------------------------------------------------------------------
+Trivial backoff 1  choice | 26% (pretty solid accuracy for a 1 choice model), ~800 not in dictionary    
+Trivial backoff 3  choice | 37% (for some reason I expected better)    
 
 
 
 **Questions**  
 
 * *How does the model perform for different choices of the parameters and size of the model?* As presented above in the table, with the different results.     
-* *How much does the model slow down for the performance you gain?* Most of the processing in the model is based on indexed data.tables (which use keys, I think binary search for finding a string value - the prior). Growing the number of Grams in the model would result in slight growth in time, but multiplied for the N. Could be significant. Another issue here is the size of the model: 400,000 1-Grams, 750,000 2-Grams, 14 million 3-Grams, 40 million 4-Grams, almost 1 million 5-Grams (this was artificially truncated). This size is already into 8GB RAM, which puts stress on the machine. Growing the model even larger would force the machine to swap, which would make it impossibly long.      
+* *How much does the model slow down for the performance you gain?* Most of the processing in the model is based on indexed data.tables (which use keys, I think binary search for finding a string value - the prior). Growing the number of Grams in the model would result in slight growth in time, but multiplied for the N. Could be significant. Another issue here is the size of the model: 400,000 1-Grams, 750,000 2-Grams, 14 million 3-Grams, 40 million 4-Grams, almost 1 million 5-Grams (this was artificially truncated). This size is already into 8GB RAM, which puts stress on the machine. Growing the model even larger would force the machine to swap, which would make the processing significantly longer.      
 * *Does perplexity correlate with the other measures of accuracy?* Didn't calculate perplexity (explained above), but in general I know that it should correlate.  
-* *Can you reduce the size of the model (number of parameters) without reducing performance?* Will try with the backoff strategy.     
+* *Can you reduce the size of the model (number of parameters) without reducing performance?* Probably yes, by trimming the N-grams. I'll use a strategy of removing the 1 time found 1-Grams, then going through the 2- to 5-Grams and eliminating the ones which correspond to Grams eliminated earlier (go through the 2-Grams and eliminate the ones with the prior or posterior in the eliminated 1-Grams, then go through the 3-Grams and eliminate.. etc).      
 
 
 
@@ -515,7 +518,11 @@ Task 5 - Creative exploration
 * *What are ways in which the n-gram model may be inefficient?* The model doesn't capture longer dependecies. Also, will have trouble with dates, numbers, percentages, etc (things which in general are not reducible to N-Grams).      
 * *What are the most commonly missed n-grams? Can you think of a reason why they would be missed and fix that?*   
 * *What are some other things that other people have tried to improve their model?*   
-* *Can you estimate how uncertain you are about the words you are predicting?*   
+* *Can you estimate how uncertain you are about the words you are predicting?* For this I need a confidence interval for the proportions I obtained (binomial distribution for a sample). Taking for example the last result, 37% for a 300,000 words corpus (take the small text I tested with, not the large one), I get the following: 
+    * P = 0.37
+    * N = 300,000
+    * the confidence interval is P_estimated +/- z * sqrt(P_estimated * (1 - P_estimated) / N)
+    * this gets me, for a 95% confidence level (z = 1.96), to the **confidence interval = (36.8%, 37.1%)**
 
 
 
