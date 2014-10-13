@@ -504,10 +504,10 @@ With the trimmed data, I get the reduction in sizes:
   N-Gram  | Size of data    
 ----------|--------------------------------------------------------------------------------
   1-Grams | ~200,000 (instead of 400,000)    
-  2-Grams | ~225,000 (instead of )    
+  2-Grams | ~225,000 (instead of 10 million)    
   3-Grams | ~2 million (instead of 35 million)    
   4-Grams | ~2.5 million (instead of 40 million)    
-  5-Grams | <2 million (instead of 10 mill)    
+  5-Grams | <2 million (instead of 10 million)    
 
 ...and the accuracies measurements. 
 
@@ -516,7 +516,7 @@ With the trimmed data, I get the reduction in sizes:
 Trivial backoff 1  choice | 24.5% (slightly worse than above)    
 Trivial backoff 3  choice | 35% (slightly worse as well)   
 
-So the drastic reduction in dimension didn't result in a drastic reduction in accuracy. 
+So the drastic reduction in dimension resulted in a small reduction in accuracy. 
 
 
 

@@ -1,4 +1,13 @@
 library(shiny)
+library(data.table)
+
+print("Loading utils.R...")
+source(file = "utils.R")
+print("...done.")
+print("Loading data...")
+loadModelTrivial()
+print("...done.")
+
 
 
 ## ---------------------------------- functions ----------------------------
@@ -88,7 +97,7 @@ shinyServer(func = function(input, output, clientData, session) {
                     updateTextInput(session = session, inputId = "inputText", value = newText)
                 }
             }
-            "Button rendered..."
+            paste("Button rendered...", allLoaded)
         })
     }
 )
