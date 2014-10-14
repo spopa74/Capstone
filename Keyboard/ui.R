@@ -11,7 +11,13 @@ shinyUI(fluidPage(
                                 tags$textarea(id="inputText", rows=10, cols=20, "")
                             ),
                             radioButtons(inputId = "options", label = "Suggestions for next word", choices = c("", "", "")), 
-                            actionButton(inputId = "addChoice", label = "Add choice")
+                            actionButton(inputId = "addChoice", label = "Add choice"),
+                            br(),
+                            br(),
+                            helpText("Logs"),
+                            tagList(
+                              tags$textarea(id="logText", rows=6, cols=40)
+                            )
                   ), 
                   mainPanel(
                             helpText("This is model of a predictive keyboard. As the user starts writing ",
@@ -21,6 +27,7 @@ shinyUI(fluidPage(
                                      "choice. The system will also try to track the accuracy of the predictor ", 
                                      "by counting the number of words and how many times the user does choose ", 
                                      "one of the presented options. English please..."),
+                            helpText(""), 
                             br(),
                             textOutput(outputId = "captureWriting"), 
                             textOutput(outputId = "captureChangeOption"), 

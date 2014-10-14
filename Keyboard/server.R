@@ -9,15 +9,6 @@ loadModelTrivial()
 print("...done.")
 
 
-
-## ---------------------------------- functions ----------------------------
-## this function return the most probable n words coming after the given one. 
-## returns a vector with the words. 
-getMostProbable <- function(x, n) {
-    return(c("one", "two", "three"))
-}
-
-
 ## -------------------------------------- shiny -----------------------------
 ## the reactive part
 shinyServer(func = function(input, output, clientData, session) {
@@ -28,12 +19,17 @@ shinyServer(func = function(input, output, clientData, session) {
         currentOptions <- c()
         currentOption <- ""
         
+        currentLog <- ""
+        
         ## save the last text in the input, use it as flag (at least)
         lastText <- ""
         
         ## hits/totalWords will give the accuracy
         hits <- 0
         totalWords <- 0
+        accuracy <- 0
+        
+        ## ----------------  REACTIVE CODE --------------------------
         
         
         ## the suggestions for the next words
@@ -47,19 +43,51 @@ shinyServer(func = function(input, output, clientData, session) {
             ## save in variable
             lastText <<- inputText
             
-            ## get the text from input, find last word, get the best 3 choices based on that
-            inputWords <- unlist(strsplit(input$inputText, " "))
-            ## pick the last word
-            inputLastWord <- inputWords[length(inputWords)]
-            print(paste("lastInput", inputLastWord))
             ## find the best 3 options
-            currentOptions <<- getMostProbable(inputLastWord, 3)
+            ## parse the text, extract the last 4 (to propose a 5'th)
+            wordList <- strsplit(gsub("[^[:alnum:] ]", "", tolower(inputText)), " +")[[1]]
+            
+            ## save the length
+            totalWords <- length(wordList)
+
+            ## GET THE PROPOSED OPTIONS
+            proposedOptions <- propose3Options(wordList)
+            if(length(proposedOptions$words) != 3)
+              return
+            
+            ## format the answers
+            if (proposedOptions$words[1] == "i")  proposedOptions$words[1] <- "I"
+            if (proposedOptions$words[2] == "i")  proposedOptions$words[2] <- "I"
+            if (proposedOptions$words[3] == "i")  proposedOptions$words[3] <- "I"
+            
+            currentOptions <<- c(proposedOptions$words[1], proposedOptions$words[2], proposedOptions$words[3])
+
+            ## format log messages
+            message1 <- paste(proposedOptions$words[1], ", probability: ", proposedOptions$probs[1], ", found in ", proposedOptions$ngrams[1])
+            message2 <- paste(proposedOptions$words[2], ", probability: ", proposedOptions$probs[2], ", found in ", proposedOptions$ngrams[2])
+            message3 <- paste(proposedOptions$words[3], ", probability: ", proposedOptions$probs[3], ", found in ", proposedOptions$ngrams[3])
+            
+            print(paste("hits: ", hits))
+            print(paste("totalWords: ", totalWords))
+            
+            
+            if (totalWords > 0)
+              accuracy <<- hits/totalWords
+            else 
+              accuracy <<- 0
+            
+            currentLog <<- paste("Accuracy: ", accuracy, "\n ***", message1, "\n***", message2, "\n***", message3, "\n")
+            
+            ## log details
+            updateTextInput(session, inputId = "logText", value = currentLog, label = "Logs")
+            
             if (! is.null(currentOptions) && length(currentOptions) > 0)
                 currentOption <<- currentOptions[1]
             ## update the checkboxes
             updateRadioButtons(session, inputId = "options", choices = currentOptions, selected = currentOption)
             "Input text rendered..."
         })
+        
         
         
         ## listen for clicking in the radio widget
@@ -69,6 +97,7 @@ shinyServer(func = function(input, output, clientData, session) {
         })
         
         
+        
         ## you can access the value of the buttons with input$id_of_button, e.g.
         output$captureAddChoice <- renderText({ 
             
@@ -76,8 +105,10 @@ shinyServer(func = function(input, output, clientData, session) {
             buttonClicked <- input$addChoice
             
             print(paste("current option in AddChoice: ", currentOption))
-            
+
             if (is.null(currentOption) || length(currentOption) == 0) return
+            
+            hits <<- hits + 1
             
             ## get the choices selected
             if (! is.null(currentOption) && (nchar(currentOption) == 1) && (currentOption %in% c("d", "t", "s"))) {
@@ -97,7 +128,8 @@ shinyServer(func = function(input, output, clientData, session) {
                     updateTextInput(session = session, inputId = "inputText", value = newText)
                 }
             }
-            paste("Button rendered...", allLoaded)
+            paste("Button rendered...")
         })
+        
     }
 )

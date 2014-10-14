@@ -86,7 +86,7 @@ mergeProposals <- function(proposal1, proposal2, n) {
 ## "words" <- list(3 options)
 ## "probabilities" <- list(3 numbers)
 ## "ngrams" <- list(which ngrams did come from)
-propose3Options <- function(text, 
+propose3Options <- function(wordList, 
                             dt5 = dt5GramFinalTriv3Choices, 
                             dt4 = dt4GramFinalTriv3Choices, 
                             dt3 = dt3GramFinalTriv3Choices, 
@@ -94,8 +94,7 @@ propose3Options <- function(text,
                             dt1 = dt1GramFinalTriv3Choices) {
   propose3 <- list(words = c(), probs = c(), ngrams = c())
   
-  ## parse the text, extract the last 4 (to propose a 5'th)
-  wordList <- strsplit(gsub("[^[:alnum:] ]", "", text), " +")[[1]]
+  ## start checking last 4
   last4 <- tail(wordList, 4)
   switch(as.character(length(last4)),
          
