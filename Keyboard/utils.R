@@ -5,14 +5,17 @@ allLoaded <- FALSE
 ## loadModels. The shiny app comes with a bunch of saved data.tables. These need to be loaded
 loadModelTrivial <- function() {
   
-  load("dt1GramFinalTriv3Choices.dt")
-  load("dt2GramFinalTriv3Choices.dt")
-  load("dt3GramFinalTriv3Choices.dt")
-  load("dt4GramFinalTriv3Choices.dt")
-  load("dt5GramFinalTriv3Choices.dt")
+  load("dt1GramFinalTriv3Choices.dt", .GlobalEnv)
+  load("dt2GramFinalTriv3Choices.dt", .GlobalEnv)
+  load("dt3GramFinalTriv3Choices.dt", .GlobalEnv)
+  load("dt4GramFinalTriv3Choices.dt", .GlobalEnv)
+  load("dt5GramFinalTriv3Choices.dt", .GlobalEnv)
   allLoaded <- TRUE
 }
 
+
+# returns string w/o leading or trailing whitespace
+trim <- function (x) gsub("^\\s+|\\s+$", "", x)
 
 
 ## ----------------- MAIN FUNCTIONs ------------------------------

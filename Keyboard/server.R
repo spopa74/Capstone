@@ -67,16 +67,16 @@ shinyServer(func = function(input, output, clientData, session) {
             message2 <- paste(proposedOptions$words[2], ", probability: ", proposedOptions$probs[2], ", found in ", proposedOptions$ngrams[2])
             message3 <- paste(proposedOptions$words[3], ", probability: ", proposedOptions$probs[3], ", found in ", proposedOptions$ngrams[3])
             
-            print(paste("hits: ", hits))
-            print(paste("totalWords: ", totalWords))
-            
-            
             if (totalWords > 0)
               accuracy <<- hits/totalWords
             else 
               accuracy <<- 0
             
-            currentLog <<- paste("Accuracy: ", accuracy, "\n ***", message1, "\n***", message2, "\n***", message3, "\n")
+            ## write in the log
+            currentLog <<- paste("Accuracy: ", strtrim(as.character(accuracy), 5), 
+                                 "\n ***", message1, 
+                                 "\n***", message2, 
+                                 "\n***", message3)
             
             ## log details
             updateTextInput(session, inputId = "logText", value = currentLog, label = "Logs")
@@ -104,8 +104,8 @@ shinyServer(func = function(input, output, clientData, session) {
             ## make this code depend on the button click
             buttonClicked <- input$addChoice
             
-            print(paste("current option in AddChoice: ", currentOption))
-
+            print(paste("current option in AddChoice: .", currentOption, "."))
+            
             if (is.null(currentOption) || length(currentOption) == 0) return
             
             hits <<- hits + 1
@@ -117,8 +117,8 @@ shinyServer(func = function(input, output, clientData, session) {
                     updateTextInput(session = session, inputId = "inputText", value = newText)
             }
             else { 
-                if (! is.null(currentOption) && (nchar(currentOption) == 2) && (currentOption %in% c("ll", "nt"))) {
-                        newText <- paste(lastText, currentOption, sep = "")
+                if (! is.null(currentOption) && (nchar(currentOption) == 2) && (currentOption %in% c("ll", "nt", "ve"))) {
+                        newText <- paste(lastText, "'", currentOption, sep = "")
                         lastText <<- newText
                         updateTextInput(session = session, inputId = "inputText", value = newText)
                 }
